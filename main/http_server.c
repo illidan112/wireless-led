@@ -1,22 +1,23 @@
+/* 
+ HTTP Server
+*/
 
 #include <esp_wifi.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_system.h>
-#include <nvs_flash.h>
 #include <sys/param.h>
-#include "nvs_flash.h"
 #include "esp_netif.h"
-#include "esp_wifi.h"
-#include "main.c"
-
+#include "esp_eth.h"
+#include "esp_tls_crypto.h"
 #include <esp_http_server.h>
 
 /* A simple example that demonstrates how to create GET and POST
  * handlers for the web server.
  */
 
-static const char *TAG = "example";
+static const char *HTTP = "HTTP_SERV";
+
 
 /* An HTTP GET handler */
 static esp_err_t hello_get_handler(httpd_req_t *req)
@@ -31,7 +32,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
         buf = malloc(buf_len);
         /* Copy null terminated value string into buffer */
         if (httpd_req_get_hdr_value_str(req, "Host", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Host: %s", buf);
+            ESP_LOGI(HTTP, "Found header => Host: %s", buf);
         }
         free(buf);
     }
@@ -40,7 +41,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     if (buf_len > 1) {
         buf = malloc(buf_len);
         if (httpd_req_get_hdr_value_str(req, "Test-Header-2", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Test-Header-2: %s", buf);
+            ESP_LOGI(HTTP, "Found header => Test-Header-2: %s", buf);
         }
         free(buf);
     }
@@ -49,7 +50,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     if (buf_len > 1) {
         buf = malloc(buf_len);
         if (httpd_req_get_hdr_value_str(req, "Test-Header-1", buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found header => Test-Header-1: %s", buf);
+            ESP_LOGI(HTTP, "Found header => Test-Header-1: %s", buf);
         }
         free(buf);
     }
@@ -60,17 +61,17 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     if (buf_len > 1) {
         buf = malloc(buf_len);
         if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
-            ESP_LOGI(TAG, "Found URL query => %s", buf);
+            ESP_LOGI(HTTP, "Found URL query => %s", buf);
             char param[32];
             /* Get value of expected key from query string */
             if (httpd_query_key_value(buf, "query1", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query1=%s", param);
+                ESP_LOGI(HTTP, "Found URL query parameter => query1=%s", param);
             }
             if (httpd_query_key_value(buf, "query3", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query3=%s", param);
+                ESP_LOGI(HTTP, "Found URL query parameter => query3=%s", param);
             }
             if (httpd_query_key_value(buf, "query2", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query2=%s", param);
+                ESP_LOGI(HTTP, "Found URL query parameter => query2=%s", param);
             }
         }
         free(buf);
@@ -88,7 +89,7 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     /* After sending the HTTP response the old HTTP request
      * headers are lost. Check if HTTP request headers can be read now. */
     if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
-        ESP_LOGI(TAG, "Request headers lost");
+        ESP_LOGI(HTTP, "Request headers lost");
     }
     return ESP_OK;
 }
@@ -124,9 +125,9 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
         remaining -= ret;
 
         /* Log data received */
-        ESP_LOGI(TAG, "=========== RECEIVED DATA ==========");
-        ESP_LOGI(TAG, "%.*s", ret, buf);
-        ESP_LOGI(TAG, "====================================");
+        ESP_LOGI(HTTP, "=========== RECEIVED DATA ==========");
+        ESP_LOGI(HTTP, "%.*s", ret, buf);
+        ESP_LOGI(HTTP, "====================================");
     }
 
     // End response
@@ -185,14 +186,14 @@ static esp_err_t ctrl_put_handler(httpd_req_t *req)
 
     if (buf == '0') {
         /* URI handlers can be unregistered using the uri string */
-        ESP_LOGI(TAG, "Unregistering /hello and /echo URIs");
+        ESP_LOGI(HTTP, "Unregistering /hello and /echo URIs");
         httpd_unregister_uri(req->handle, "/hello");
         httpd_unregister_uri(req->handle, "/echo");
         /* Register the custom error handler */
         httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, http_404_error_handler);
     }
     else {
-        ESP_LOGI(TAG, "Registering /hello and /echo URIs");
+        ESP_LOGI(HTTP, "Registering /hello and /echo URIs");
         httpd_register_uri_handler(req->handle, &hello);
         httpd_register_uri_handler(req->handle, &echo);
         /* Unregister custom error handler */
@@ -213,22 +214,22 @@ static const httpd_uri_t ctrl = {
 
 static httpd_handle_t start_webserver(void)
 {
-
+    httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.lru_purge_enable = true;
 
     // Start the httpd server
-    ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
+    ESP_LOGI(HTTP, "Starting server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
-        ESP_LOGI(TAG, "Registering URI handlers");
+        ESP_LOGI(HTTP, "Registering URI handlers");
         httpd_register_uri_handler(server, &hello);
         httpd_register_uri_handler(server, &echo);
         httpd_register_uri_handler(server, &ctrl);
         return server;
     }
 
-    ESP_LOGI(TAG, "Error starting server!");
+    ESP_LOGI(HTTP, "Error starting server!");
     return NULL;
 }
 
@@ -243,7 +244,7 @@ static void disconnect_handler(void* arg, esp_event_base_t event_base,
 {
     httpd_handle_t* server = (httpd_handle_t*) arg;
     if (*server) {
-        ESP_LOGI(TAG, "Stopping webserver");
+        ESP_LOGI(HTTP, "Stopping webserver");
         stop_webserver(*server);
         *server = NULL;
     }
@@ -254,14 +255,15 @@ static void connect_handler(void* arg, esp_event_base_t event_base,
 {
     httpd_handle_t* server = (httpd_handle_t*) arg;
     if (*server == NULL) {
-        ESP_LOGI(TAG, "Starting webserver");
+        ESP_LOGI(HTTP, "Starting webserver");
         *server = start_webserver();
     }
 }
 
-void start_http_server(void){
 
-    httpd_handle_t server = NULL;
+void http_server_start(void)
+{
+    static httpd_handle_t server = NULL;
 
     /* Register event handlers to stop the server when Wi-Fi is disconnected,
      * and re-start it upon connection.
@@ -271,5 +273,4 @@ void start_http_server(void){
 
     /* Start the server for the first time */
     server = start_webserver();
-
 }

@@ -1,0 +1,5 @@
+# Automatically generated file.
+build/
+*.projbuild
+sdkconfig
+
