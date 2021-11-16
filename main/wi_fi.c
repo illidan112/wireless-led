@@ -1,6 +1,8 @@
-/* 
-    WiFi station 
+/*
+    WiFi station
 */
+
+#include "wi_fi.h"
 
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -15,12 +17,14 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-/* 
+
+
+/*
     Change the below entries to strings with
    the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
 */
-#define EXAMPLE_ESP_WIFI_SSID      "Get-B75150"
-#define EXAMPLE_ESP_WIFI_PASS      "cdzknmygzm"
+#define EXAMPLE_ESP_WIFI_SSID      "Redmi"
+#define EXAMPLE_ESP_WIFI_PASS      "pipidastr"
 #define EXAMPLE_ESP_MAXIMUM_RETRY  6
 
 /* FreeRTOS event group to signal when we are connected*/

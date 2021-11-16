@@ -1,6 +1,8 @@
-/* 
+/*
  HTTP Server
 */
+
+#include "http_server.h"
 
 #include <esp_wifi.h>
 #include <esp_event.h>
@@ -11,6 +13,7 @@
 #include "esp_eth.h"
 #include "esp_tls_crypto.h"
 #include <esp_http_server.h>
+
 
 /* A simple example that demonstrates how to create GET and POST
  * handlers for the web server.
@@ -219,7 +222,9 @@ static httpd_handle_t start_webserver(void)
     config.lru_purge_enable = true;
 
     // Start the httpd server
-    ESP_LOGI(HTTP, "Starting server on port: '%d'", config.server_port);
+    ESP_LOGI(HTTP, "Starting server ");
+    ESP_LOGI(HTTP, "TCP port: '%d'", config.server_port);
+    ESP_LOGI(HTTP, "UDP port: '%d'", config.ctrl_port);
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(HTTP, "Registering URI handlers");

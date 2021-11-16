@@ -10,8 +10,9 @@
 #include "esp_netif.h"
 #include "sdkconfig.h"
 #include <string.h>
-#include "http_server.c"
-#include "wi_fi.c"
+
+#include "http_server.h"
+#include "wi_fi.h"
 
 static const char *TAG = "MAIN";
 
