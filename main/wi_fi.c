@@ -18,14 +18,13 @@
 #include "lwip/sys.h"
 
 
-
 /*
     Change the below entries to strings with
-   the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
+   the config you want - ie #define  ESP_WIFI_SSID "mywifissid"
 */
-#define EXAMPLE_ESP_WIFI_SSID      "Redmi"
-#define EXAMPLE_ESP_WIFI_PASS      "pipidastr"
-#define EXAMPLE_ESP_MAXIMUM_RETRY  6
+#define ESP_WIFI_SSID      "Redmi"
+#define ESP_WIFI_PASS      "pipidastr"
+#define ESP_MAXIMUM_RETRY  6
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -46,14 +45,14 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY) {
+        if (s_retry_num <  ESP_MAXIMUM_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
             ESP_LOGI(WIFI, "retry to connect to the AP");
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
             ESP_LOGI(WIFI, "Failed to connect to SSID:%s, password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+                  ESP_WIFI_SSID,  ESP_WIFI_PASS);
         }
         ESP_LOGI(WIFI,"connect to the AP fail");
     } else if (event_base == IP_EVENT ){
@@ -66,7 +65,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
                 s_retry_num = 0;
                 xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
                 ESP_LOGI(WIFI, "connected to ap SSID:%s password:%s",
-                EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+                 ESP_WIFI_SSID,  ESP_WIFI_PASS);
                 break;
             }
             default:{
@@ -92,8 +91,8 @@ esp_err_t wifi_init_sta(void)
 
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = EXAMPLE_ESP_WIFI_SSID,
-            .password = EXAMPLE_ESP_WIFI_PASS
+            .ssid =  ESP_WIFI_SSID,
+            .password =  ESP_WIFI_PASS
         },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
@@ -114,10 +113,10 @@ esp_err_t wifi_init_sta(void)
      * happened. */
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(WIFI, "connected to ap SSID:%s password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+                  ESP_WIFI_SSID,  ESP_WIFI_PASS);
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGI(WIFI, "Failed to connect to SSID:%s, password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+                  ESP_WIFI_SSID,  ESP_WIFI_PASS);
         ret_value = ESP_FAIL;
     } else {
         ESP_LOGE(WIFI, "UNEXPECTED EVENT");

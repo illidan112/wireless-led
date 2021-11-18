@@ -5,6 +5,7 @@
 #include "http_server.h"
 
 #include <esp_wifi.h>
+#include <mdns.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_system.h>
@@ -14,12 +15,22 @@
 #include "esp_tls_crypto.h"
 #include <esp_http_server.h>
 
-
-/* A simple example that demonstrates how to create GET and POST
- * handlers for the web server.
- */
+#define ESP_MDNS_URI            "esp_led"
+#define ESP_MDNS_INSTANCE_NAME  "wireless_led"
 
 static const char *HTTP = "HTTP_SERV";
+static const char *MDNS = "MDNS";
+
+static void initialise_mdns(void)
+{
+    //initialize mDNS
+    ESP_ERROR_CHECK( mdns_init() );
+    //set mDNS hostname (required if you want to advertise services)
+    ESP_ERROR_CHECK( mdns_hostname_set(ESP_MDNS_URI) );
+    ESP_LOGI(MDNS, "mdns hostname set to: [%s]", ESP_MDNS_URI);
+    //set default mDNS instance name
+    ESP_ERROR_CHECK( mdns_instance_name_set( ESP_MDNS_INSTANCE_NAME) );
+}
 
 
 /* An HTTP GET handler */
@@ -226,6 +237,10 @@ static httpd_handle_t start_webserver(void)
     ESP_LOGI(HTTP, "TCP port: '%d'", config.server_port);
     ESP_LOGI(HTTP, "UDP port: '%d'", config.ctrl_port);
     if (httpd_start(&server, &config) == ESP_OK) {
+
+        //Set hostname
+        initialise_mdns();
+
         // Set URI handlers
         ESP_LOGI(HTTP, "Registering URI handlers");
         httpd_register_uri_handler(server, &hello);
