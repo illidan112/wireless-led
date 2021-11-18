@@ -2,4 +2,5 @@
 build/
 *.projbuild
 sdkconfig
+.vscode
 
