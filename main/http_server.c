@@ -3,6 +3,7 @@
 */
 
 #include "http_server.h"
+#include "led.h"
 
 #include <esp_wifi.h>
 #include <mdns.h>
@@ -11,15 +12,20 @@
 #include <esp_system.h>
 #include <sys/param.h>
 #include "esp_netif.h"
-#include "esp_eth.h"
 #include "esp_tls_crypto.h"
 #include <esp_http_server.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
 
 #define ESP_MDNS_URI            "esp_led"
 #define ESP_MDNS_INSTANCE_NAME  "wireless_led"
 
 static const char *HTTP = "HTTP_SERV";
 static const char *MDNS = "MDNS";
+
+static portBASE_TYPE xStatus;
 
 static void initialise_mdns(void)
 {
@@ -120,9 +126,9 @@ static const httpd_uri_t hello = {
 /* An HTTP POST handler */
 static esp_err_t echo_post_handler(httpd_req_t *req)
 {
-    char buf[100];
+    char buf[4];
     int ret, remaining = req->content_len;
-
+    printf("__ %d\n", remaining);
     while (remaining > 0) {
         /* Read the data for the request */
         if ((ret = httpd_req_recv(req, buf,
@@ -142,6 +148,16 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
         ESP_LOGI(HTTP, "=========== RECEIVED DATA ==========");
         ESP_LOGI(HTTP, "%.*s", ret, buf);
         ESP_LOGI(HTTP, "====================================");
+
+        vTaskResume(xLightMusicHandle);
+        xStatus = xQueueSendToBack( xLightDataQueue, buf, 0 );
+        if( xStatus != pdPASS ){
+            /* Операция отправки не завершена, потому что очередь была заполнена -
+                это должно означать ошибку, так как в нашем случае очередь никогда
+                не будет содержать больше одного элемента данных! */
+            ESP_LOGW(HTTP, "Could not send to the queue." );
+        }
+
     }
 
     // End response
