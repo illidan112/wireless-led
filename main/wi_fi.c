@@ -20,7 +20,7 @@
 
 /*
     Change the below entries to strings with
-   the config you want - ie #define  ESP_WIFI_SSID "mywifissid"
+    the config you want - ie #define  ESP_WIFI_SSID "mywifissid"
 */
 #define ESP_WIFI_SSID      "Redmi"
 #define ESP_WIFI_PASS      "pipidastr"

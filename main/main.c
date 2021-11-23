@@ -13,6 +13,7 @@
 #include "http_server.h"
 #include "wi_fi.h"
 #include "led.h"
+#include "udp.h"
 
 static const char *TAG = "MAIN";
 
@@ -38,7 +39,6 @@ void app_main(void){
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-
     if (wifi_init_sta() == ESP_OK) {
         /* Start the server for the first time */
         ESP_LOGI(TAG, "Start http server");
@@ -46,5 +46,7 @@ void app_main(void){
     } else {
         ESP_LOGI(TAG, "Connection failed");
     }
+
     ESP_ERROR_CHECK(led_init());
+    ESP_ERROR_CHECK(udpClient_init());
 }

@@ -40,12 +40,13 @@ led_strip_t strip = {
 
 void xLightMusic(void *pvParameters)
 {
-
+    printf("__xLightMusic start\n");
     char ReceivedData[4];
     const portTickType xTicksToWait = 100 / portTICK_RATE_MS;
 
     size_t c = 0;
     while (1){
+        printf("__xLightMusic WHILE(1)\n");
 
     if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
        //Печать "Очередь должна была быть пустой!"
@@ -80,7 +81,7 @@ esp_err_t led_init()
 
 
     xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
-    xLightDataQueue = xQueueCreate( 5, sizeof( char ) * 4 );
+    xLightDataQueue = xQueueCreate( 2, sizeof( char ) * 4 );
     if( xLightDataQueue == NULL ){
         ESP_LOGE(LED, "Queue create error");
         return ESP_FAIL;
