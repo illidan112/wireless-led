@@ -8,7 +8,12 @@
 #include <freertos/task.h>
 #include <freertos/queue.h>
 
-xQueueHandle xLightDataQueue;
-xTaskHandle xLightMusicHandle;
+#ifndef _LED_H_
+#define _LED_H_
+
+extern xQueueHandle xLightDataQueue;
+extern xTaskHandle xLightMusicHandle;
 
 esp_err_t led_init();
+
+#endif

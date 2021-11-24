@@ -12,11 +12,15 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
+//#include "FreeRTOSConfig.h"
 
 
 #define LED_TYPE LED_STRIP_WS2812
 #define LED_GPIO 5
 #define LED_STRIP_LEN 8
+
+xQueueHandle  xLightDataQueue = NULL;
+xTaskHandle xLightMusicHandle = NULL;
 
 static const char *LED = "LED";
 static portBASE_TYPE xStatus;
@@ -40,17 +44,24 @@ led_strip_t strip = {
 
 void xLightMusic(void *pvParameters)
 {
-    printf("__xLightMusic start\n");
+    ESP_LOGI(LED, "xLightMusic start");
     char ReceivedData[4];
     const portTickType xTicksToWait = 100 / portTICK_RATE_MS;
 
     size_t c = 0;
     while (1){
-        printf("__xLightMusic WHILE(1)\n");
+        ESP_LOGI(LED, "xLightMusic WHILE(1)");
 
     if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
        //Печать "Очередь должна была быть пустой!"
        ESP_LOGW(LED, "Queue should have been empty!");
+    }
+    xTaskHandle xH = xTaskGetCurrentTaskHandle();
+
+    if(xH == xLightMusicHandle){
+        ESP_LOGW(LED, "true");
+    }else{
+        ESP_LOGW(LED, "false");
     }
 
        xStatus = xQueueReceive( xLightDataQueue, &ReceivedData, xTicksToWait );
@@ -79,8 +90,6 @@ esp_err_t led_init()
     led_strip_install();
     ESP_ERROR_CHECK(led_strip_init(&strip));
 
-
-    xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
     xLightDataQueue = xQueueCreate( 2, sizeof( char ) * 4 );
     if( xLightDataQueue == NULL ){
         ESP_LOGE(LED, "Queue create error");
@@ -88,16 +97,13 @@ esp_err_t led_init()
         }
 
     xStatus = xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 2, &xLightMusicHandle);
-    if( xStatus != pdPASS ){
+    if( xStatus != pdPASS || xLightMusicHandle==NULL ){
         ESP_LOGE(LED, "Task create error");
         return ESP_FAIL;
     }else{
             ESP_LOGI(LED, "xLightMusicHandle in SUSPEND");
             vTaskSuspend(xLightMusicHandle);
         }
-
-    // ESP_LOGI(LED, "Start Scheduler");
-    // vTaskStartScheduler();
 
     return ESP_OK;
 

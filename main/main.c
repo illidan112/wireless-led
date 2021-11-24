@@ -19,12 +19,11 @@ static const char *TAG = "MAIN";
 
 /* Function responsible for configuring and starting the http_webserver service.
  * See http_server.c for implementation */
-extern void http_server_start(void);
+// extern void http_server_start(void);
 
-/* Function responsible for configuring and starting the wi-fi module.
- * See wi-fi.c for implementation */
-extern esp_err_t wifi_init_sta(void);
-
+// /* Function responsible for configuring and starting the wi-fi module.
+//  * See wi-fi.c for implementation */
+// extern esp_err_t wifi_init_sta(void);
 
 void app_main(void){
 

@@ -22,9 +22,11 @@
 
 #define PORT 3333
 
+xTaskHandle
+
 static const char *UDP = "UDP";
 
-static void udp_server_task(void *pvParameters)
+static void udpServerTask(void *pvParameters)
 {
     char rx_buffer[128];
     char addr_str[128];
@@ -104,9 +106,9 @@ esp_err_t udpClient_init(void){
 
     portBASE_TYPE xStatus;
 
-    xStatus = xTaskCreate(udp_server_task, "udp_server", 4096, (void*)AF_INET, 5, NULL);
+    xStatus = xTaskCreate(udpServerTask, "udp_server", 4096, (void*)AF_INET, 5, NULL);
     if( xStatus != pdPASS ){
-        ESP_LOGE(UDP, "Udp_server_task create error");
+        ESP_LOGE(UDP, "udpServerTask create error");
         return ESP_FAIL;
     }
     return ESP_OK;
