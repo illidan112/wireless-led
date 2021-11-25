@@ -18,11 +18,12 @@
 #define LED_TYPE LED_STRIP_WS2812
 #define LED_GPIO 5
 #define LED_STRIP_LEN 8
+#define TAG     "LED"
 
 xQueueHandle  xLightDataQueue = NULL;
 xTaskHandle xLightMusicHandle = NULL;
 
-static const char *LED = "LED";
+//static const char *LED = "LED";
 static portBASE_TYPE xStatus;
 
 static const rgb_t colors[] = {
@@ -44,65 +45,64 @@ led_strip_t strip = {
 
 void xLightMusic(void *pvParameters)
 {
-    ESP_LOGI(LED, "xLightMusic start");
-    char ReceivedData[4];
+    ESP_LOGI(TAG, "xLightMusic start");
+    char ReceivedData[16];
     const portTickType xTicksToWait = 100 / portTICK_RATE_MS;
 
     size_t c = 0;
-    while (1){
-        ESP_LOGI(LED, "xLightMusic WHILE(1)");
 
-    if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
-       //Печать "Очередь должна была быть пустой!"
-       ESP_LOGW(LED, "Queue should have been empty!");
-    }
     xTaskHandle xH = xTaskGetCurrentTaskHandle();
 
     if(xH == xLightMusicHandle){
-        ESP_LOGW(LED, "true");
+        ESP_LOGW(TAG, "xLightMusicHandle true");
     }else{
-        ESP_LOGW(LED, "false");
+        ESP_LOGW(TAG, "xLightMusicHandle false");
+    }
+
+    while (1){
+        ESP_LOGI(TAG, "xLightMusic WHILE(1)");
+
+    if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
+       //Печать "Очередь должна была быть пустой!"
+       ESP_LOGW(TAG, "Queue should have been empty!");
     }
 
        xStatus = xQueueReceive( xLightDataQueue, &ReceivedData, xTicksToWait );
 
     if( xStatus == pdPASS ){
        /* Данные успешно приняты из очереди, печать принятого значения. */
-       ESP_LOGI(LED,"RECEIVED DATA: %d", ReceivedData[0]);
-       ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
-       ESP_ERROR_CHECK(led_strip_flush(&strip));
+        ESP_LOGI(TAG,"RECEIVED DATA: %d", ReceivedData[0]);
+        ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
+        ESP_ERROR_CHECK(led_strip_flush(&strip));
+        if (++c >= COLORS_TOTAL)
+            c = 0;
     }else{
         /* Данные не были приняты из очереди даже после ожидания 100 мс.
             Вызов vTaskSuspend(); */
-        ESP_LOGE(LED, "Call vTaskSuspend(NULL), because could not receive from the queue.");
+        ESP_LOGE(TAG, "Call vTaskSuspend(NULL), because could not receive from the queue.");
         vTaskSuspend(NULL);
     }
 
-        if (++c >= COLORS_TOTAL)
-            c = 0;
     }
 }
 
-
-esp_err_t led_init()
+esp_err_t lightmusic_start()
 {
 
-    led_strip_install();
-    ESP_ERROR_CHECK(led_strip_init(&strip));
-
-    xLightDataQueue = xQueueCreate( 2, sizeof( char ) * 4 );
+    xLightDataQueue = xQueueCreate( 3, sizeof( uint8_t[16] ) );
     if( xLightDataQueue == NULL ){
-        ESP_LOGE(LED, "Queue create error");
+        ESP_LOGE(TAG, "Queue create error");
         return ESP_FAIL;
         }
 
-    xStatus = xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 2, &xLightMusicHandle);
+    xStatus = xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle);
     if( xStatus != pdPASS || xLightMusicHandle==NULL ){
-        ESP_LOGE(LED, "Task create error");
+        ESP_LOGE(TAG, "Task create error");
         return ESP_FAIL;
-    }else{
-            ESP_LOGI(LED, "xLightMusicHandle in SUSPEND");
-            vTaskSuspend(xLightMusicHandle);
+    }
+    else{
+            // vTaskSuspend(xLightMusicHandle);
+            // GetTaskState("xLightMusic", xLightMusicHandle);
         }
 
     return ESP_OK;

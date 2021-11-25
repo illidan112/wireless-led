@@ -17,14 +17,6 @@
 
 static const char *TAG = "MAIN";
 
-/* Function responsible for configuring and starting the http_webserver service.
- * See http_server.c for implementation */
-// extern void http_server_start(void);
-
-// /* Function responsible for configuring and starting the wi-fi module.
-//  * See wi-fi.c for implementation */
-// extern esp_err_t wifi_init_sta(void);
-
 void app_main(void){
 
     //Initialize NVS
@@ -46,6 +38,37 @@ void app_main(void){
         ESP_LOGI(TAG, "Connection failed");
     }
 
-    ESP_ERROR_CHECK(led_init());
-    ESP_ERROR_CHECK(udpClient_init());
+    //ESP_ERROR_CHECK(led_init());
+    //ESP_ERROR_CHECK(udpClient_init());
 }
+
+// void GetTaskState(xTaskHandle taskHandle){
+//     char taskName[64];
+//     eTaskState state = eTaskGetState(taskHandle);
+//     taskName =  pcTaskGetName(taskHandle);
+
+//    switch (state)
+//    {
+//         case eRunning:
+//             ESP_LOGI("Task RUNNING");
+//             break;
+//         case eReady:
+//             ESP_LOGI("Task READY");
+//             break;
+//         case eBlocked:
+//             ESP_LOGI("Task BLOCKED");
+//             break;
+//         case eSuspended:
+//             ESP_LOGI("Task  SUSPENDED");
+//             break;
+//         case eDeleted:
+//             ESP_LOGI("Task  DELETED");
+//             break;
+//         case eInvalid:
+//             ESP_LOGI("Task  INVALID");
+//             break;
+//         default:
+//             ESP_LOGI("Unknown status");
+//             break;
+//    }
+// }

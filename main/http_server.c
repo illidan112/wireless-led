@@ -27,6 +27,11 @@ static const char *MDNS = "MDNS";
 
 static portBASE_TYPE xStatus;
 
+typedef enum CMD_t {
+    START_LIGHTMUSIC = 48,
+    STOP_LIGHTMUSIC,
+} CMD_t;
+
 static void initialise_mdns(void)
 {
     //initialize mDNS
@@ -149,14 +154,11 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
         ESP_LOGI(HTTP, "%.*s", ret, buf);
         ESP_LOGI(HTTP, "====================================");
 
-        vTaskResume(xLightMusicHandle);
-        xStatus = xQueueSendToBack( xLightDataQueue, buf, 0 );
-        if( xStatus != pdPASS ){
-            /* Операция отправки не завершена, потому что очередь была заполнена -
-                это должно означать ошибку, так как в нашем случае очередь никогда
-                не будет содержать больше одного элемента данных! */
-            ESP_LOGW(HTTP, "Could not send to the queue." );
-        }
+        // vTaskResume(xLightMusicHandle);
+        // xStatus = xQueueSendToBack( xLightDataQueue, buf, 0 );
+        // if( xStatus != pdPASS ){
+        //     ESP_LOGW(HTTP, "Could not send to the queue." );
+        // }
 
     }
 
@@ -213,21 +215,19 @@ static esp_err_t ctrl_put_handler(httpd_req_t *req)
         }
         return ESP_FAIL;
     }
+    int cmd_num = (int) buf;
 
-    if (buf == '0') {
-        /* URI handlers can be unregistered using the uri string */
-        ESP_LOGI(HTTP, "Unregistering /hello and /echo URIs");
-        httpd_unregister_uri(req->handle, "/hello");
-        httpd_unregister_uri(req->handle, "/echo");
-        /* Register the custom error handler */
-        httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, http_404_error_handler);
-    }
-    else {
-        ESP_LOGI(HTTP, "Registering /hello and /echo URIs");
-        httpd_register_uri_handler(req->handle, &hello);
-        httpd_register_uri_handler(req->handle, &echo);
-        /* Unregister custom error handler */
-        httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, NULL);
+    switch (cmd_num)
+    {
+        case START_LIGHTMUSIC:
+            ESP_LOGI(HTTP, "Start tasks");
+            break;
+        case STOP_LIGHTMUSIC:
+            ESP_LOGI(HTTP, "Stop tasks");
+            break;
+        default:
+            ESP_LOGW(HTTP, "Unknown command");
+            break;
     }
 
     /* Respond with empty body */

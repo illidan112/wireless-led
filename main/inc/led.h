@@ -14,6 +14,6 @@
 extern xQueueHandle xLightDataQueue;
 extern xTaskHandle xLightMusicHandle;
 
-esp_err_t led_init();
+esp_err_t lightmusic_start();
 
 #endif

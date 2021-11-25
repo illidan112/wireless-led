@@ -19,16 +19,19 @@
 #include <lwip/netdb.h>
 
 #include "udp.h"
+#include "main.h"
+#include "led.h"
 
 #define PORT 3333
 
-xTaskHandle
+xTaskHandle xUdpServerHandle = NULL;
 
 static const char *UDP = "UDP";
+static int Socket = 0;
 
 static void udpServerTask(void *pvParameters)
 {
-    char rx_buffer[128];
+    uint8_t rx_buffer[16];
     char addr_str[128];
     int addr_family = (int)pvParameters;
     int ip_protocol = 0;
@@ -52,14 +55,16 @@ static void udpServerTask(void *pvParameters)
             ESP_LOGE(UDP, "Unable to create socket: errno %d", errno);
             break;
         }
-        ESP_LOGI(UDP, "Socket created");
+        ESP_LOGI(UDP, "Socket №%d created", sock);
 
         int err = bind(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (err < 0) {
             ESP_LOGE(UDP, "Socket unable to bind: errno %d", errno);
         }
         ESP_LOGI(UDP, "Socket bound, port %d", PORT);
+        Socket = sock;
 
+        portBASE_TYPE xStatus;
         while (1) {
 
             ESP_LOGI(UDP, "Waiting for data");
@@ -85,11 +90,16 @@ static void udpServerTask(void *pvParameters)
                 ESP_LOGI(UDP, "Received %d bytes from %s:", len, addr_str);
                 ESP_LOGI(UDP, "%s", rx_buffer);
 
-                int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&source_addr, sizeof(source_addr));
-                if (err < 0) {
-                    ESP_LOGE(UDP, "Error occurred during sending: errno %d", errno);
-                    break;
-                }
+                xStatus = xQueueSendToBack( xLightDataQueue, rx_buffer, 0 );
+                if( xStatus != pdPASS ){
+                    ESP_LOGW(UDP, "Could not send to the queue." );
+                    }
+
+                // int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&source_addr, sizeof(source_addr));
+                // if (err < 0) {
+                //     ESP_LOGE(UDP, "Error occurred during sending: errno %d", errno);
+                //     break;
+                // }
             }
         }
 
@@ -102,15 +112,36 @@ static void udpServerTask(void *pvParameters)
     //vTaskDelete(NULL);
 }
 
-esp_err_t udpClient_init(void){
+esp_err_t udpClient_close(void){
+
+    ESP_LOGI(UDP, "Shutting down socket");
+
+    if( shutdown(Socket, 0)!= 0){
+        ESP_LOGE(UDP, "Shutting down ERROR");
+        return ESP_FAIL;}
+
+    if( close(Socket)!= 0){
+        ESP_LOGE(UDP, "Shutting down ERROR");
+        return ESP_FAIL;}
+
+    vTaskDelete(xUdpServerHandle);
+    ESP_LOGW(UDP, "Delete udpServerTask");
+
+    return ESP_OK;
+}
+
+esp_err_t udpClient_open(void){
 
     portBASE_TYPE xStatus;
 
-    xStatus = xTaskCreate(udpServerTask, "udp_server", 4096, (void*)AF_INET, 5, NULL);
+    xStatus = xTaskCreate(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle);
     if( xStatus != pdPASS ){
         ESP_LOGE(UDP, "udpServerTask create error");
         return ESP_FAIL;
-    }
+    }else{
+            //vTaskSuspend(xUdpServerHandle);
+            //GetTaskState("udpServerTask", xUdpServerHandle);
+        }
     return ESP_OK;
 
 }

@@ -24,7 +24,7 @@
 */
 #define ESP_WIFI_SSID      "Redmi"
 #define ESP_WIFI_PASS      "pipidastr"
-#define ESP_MAXIMUM_RETRY  6
+#define ESP_MAXIMUM_RETRY  30
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
