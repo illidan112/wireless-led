@@ -4,6 +4,8 @@
 
 #include "http_server.h"
 #include "led.h"
+#include "udp.h"
+#include "main.h"
 
 #include <esp_wifi.h>
 #include <mdns.h>
@@ -25,11 +27,9 @@
 static const char *HTTP = "HTTP_SERV";
 static const char *MDNS = "MDNS";
 
-static portBASE_TYPE xStatus;
-
 typedef enum CMD_t {
-    START_LIGHTMUSIC = 48,
-    STOP_LIGHTMUSIC,
+    STOP_LIGHTMUSIC = 48,
+    START_LIGHTMUSIC,
 } CMD_t;
 
 static void initialise_mdns(void)
@@ -154,11 +154,6 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
         ESP_LOGI(HTTP, "%.*s", ret, buf);
         ESP_LOGI(HTTP, "====================================");
 
-        // vTaskResume(xLightMusicHandle);
-        // xStatus = xQueueSendToBack( xLightDataQueue, buf, 0 );
-        // if( xStatus != pdPASS ){
-        //     ESP_LOGW(HTTP, "Could not send to the queue." );
-        // }
 
     }
 
@@ -220,10 +215,26 @@ static esp_err_t ctrl_put_handler(httpd_req_t *req)
     switch (cmd_num)
     {
         case START_LIGHTMUSIC:
-            ESP_LOGI(HTTP, "Start tasks");
+            ESP_LOGI(HTTP, "Open tasks");
+            if(udpClient_open() != ESP_OK || lightmusic_open() != ESP_OK){
+                break;
+            }
+
+            GetTaskState(xLightMusicHandle);
+            GetTaskState(xUdpServerHandle);
+
+            httpd_resp_set_hdr(req, "LightMusicOn", 1);
+            // udpClient_START();
+            // lightmusic_START();
+
+            // const char* resp_str = (const char*) req->user_ctx;
+            // httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
+
             break;
         case STOP_LIGHTMUSIC:
-            ESP_LOGI(HTTP, "Stop tasks");
+            closeLightMusicMode();
+            //httpd_resp_set_hdr(req, "LightMusic", "0");
+
             break;
         default:
             ESP_LOGW(HTTP, "Unknown command");

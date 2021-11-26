@@ -4,6 +4,7 @@
  */
 
 #include "led.h"
+#include "main.h"
 
 #include <stdio.h>
 #include <esp_log.h>
@@ -47,7 +48,7 @@ void xLightMusic(void *pvParameters)
 {
     ESP_LOGI(TAG, "xLightMusic start");
     char ReceivedData[16];
-    const portTickType xTicksToWait = 100 / portTICK_RATE_MS;
+    const portTickType xTicksToWait = 1000 / portTICK_RATE_MS;
 
     size_t c = 0;
 
@@ -77,34 +78,61 @@ void xLightMusic(void *pvParameters)
         if (++c >= COLORS_TOTAL)
             c = 0;
     }else{
-        /* Данные не были приняты из очереди даже после ожидания 100 мс.
+        /* Данные не были приняты из очереди даже после ожидания 1000 мс.
             Вызов vTaskSuspend(); */
-        ESP_LOGE(TAG, "Call vTaskSuspend(NULL), because could not receive from the queue.");
-        vTaskSuspend(NULL);
+        ESP_LOGE(TAG, "Call closeLightMusicMode(), because could not receive from the queue.");
+        closeLightMusicMode();
     }
 
     }
 }
 
-esp_err_t lightmusic_start()
+void lightmusic_close(){
+
+    ESP_LOGW(TAG, "Delete LightMusicTask");
+    vTaskDelete(xLightMusicHandle);
+    ESP_LOGW(TAG, "Delete LightDataQueue");
+    vQueueDelete(xLightDataQueue);
+    xLightMusicHandle = NULL;
+    xLightDataQueue = NULL;
+}
+
+
+esp_err_t lightmusic_open()
 {
+    if(xLightMusicHandle == NULL && xLightDataQueue == NULL ){
+        xLightDataQueue = xQueueCreate( 3, sizeof( uint8_t[16] ) );
+        if( xLightDataQueue == NULL ){
+            ESP_LOGE(TAG, "Queue create error");
+            return ESP_FAIL;
+            }
 
-    xLightDataQueue = xQueueCreate( 3, sizeof( uint8_t[16] ) );
-    if( xLightDataQueue == NULL ){
-        ESP_LOGE(TAG, "Queue create error");
-        return ESP_FAIL;
+        xStatus = xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle);
+        if( xStatus != pdPASS || xLightMusicHandle==NULL ){
+            ESP_LOGE(TAG, "Task create error");
+            return ESP_FAIL;
         }
+        else{
+                vTaskSuspend(xLightMusicHandle);
+                GetTaskState(xLightMusicHandle);
+            }
 
-    xStatus = xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle);
-    if( xStatus != pdPASS || xLightMusicHandle==NULL ){
-        ESP_LOGE(TAG, "Task create error");
+        return ESP_OK;
+    } else{
+        ESP_LOGE(TAG, "Almost exist");
         return ESP_FAIL;
     }
-    else{
-            // vTaskSuspend(xLightMusicHandle);
-            // GetTaskState("xLightMusic", xLightMusicHandle);
-        }
 
-    return ESP_OK;
+}
 
+void lightmusic_START(){
+
+    vTaskResume(xLightMusicHandle);
+    GetTaskState(xLightMusicHandle);
+}
+
+void lightmusic_STOP(){
+
+    vTaskSuspend(xLightMusicHandle);
+    GetTaskState(xLightMusicHandle);
 }

@@ -15,7 +15,7 @@
 #include "led.h"
 #include "udp.h"
 
-static const char *TAG = "MAIN";
+#define TAG "MAIN"
 
 void app_main(void){
 
@@ -38,37 +38,43 @@ void app_main(void){
         ESP_LOGI(TAG, "Connection failed");
     }
 
-    //ESP_ERROR_CHECK(led_init());
-    //ESP_ERROR_CHECK(udpClient_init());
 }
 
-// void GetTaskState(xTaskHandle taskHandle){
-//     char taskName[64];
-//     eTaskState state = eTaskGetState(taskHandle);
-//     taskName =  pcTaskGetName(taskHandle);
+void GetTaskState(xTaskHandle taskHandle){
+    static const char* DEBUG = "DEBUG";
+    char* taskName;
+    taskName =  pcTaskGetName(taskHandle);
+    eTaskState state = eTaskGetState(taskHandle);
 
-//    switch (state)
-//    {
-//         case eRunning:
-//             ESP_LOGI("Task RUNNING");
-//             break;
-//         case eReady:
-//             ESP_LOGI("Task READY");
-//             break;
-//         case eBlocked:
-//             ESP_LOGI("Task BLOCKED");
-//             break;
-//         case eSuspended:
-//             ESP_LOGI("Task  SUSPENDED");
-//             break;
-//         case eDeleted:
-//             ESP_LOGI("Task  DELETED");
-//             break;
-//         case eInvalid:
-//             ESP_LOGI("Task  INVALID");
-//             break;
-//         default:
-//             ESP_LOGI("Unknown status");
-//             break;
-//    }
-// }
+
+   switch (state)
+   {
+        case eRunning:
+            ESP_LOGI(DEBUG,"Task %s RUNNING", taskName);
+            break;
+        case eReady:
+            ESP_LOGI(DEBUG,"Task %s READY", taskName);
+            break;
+        case eBlocked:
+            ESP_LOGI(DEBUG,"Task %s BLOCKED",taskName);
+            break;
+        case eSuspended:
+            ESP_LOGI(DEBUG,"Task %s SUSPENDED", taskName);
+            break;
+        case eDeleted:
+            ESP_LOGI(DEBUG,"Task %s DELETED", taskName);
+            break;
+        case eInvalid:
+            ESP_LOGI(DEBUG,"Task %s INVALID", taskName);
+            break;
+        default:
+            ESP_LOGI(DEBUG,"Unknown status");
+            break;
+   }
+}
+
+void closeLightMusicMode(){
+    ESP_LOGI(TAG, "Close LightMusic Mode");
+    lightmusic_close();
+    ESP_ERROR_CHECK_WITHOUT_ABORT(udpClient_close());
+}

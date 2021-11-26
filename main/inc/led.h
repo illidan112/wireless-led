@@ -14,6 +14,10 @@
 extern xQueueHandle xLightDataQueue;
 extern xTaskHandle xLightMusicHandle;
 
-esp_err_t lightmusic_start();
+esp_err_t lightmusic_open();
+void lightmusic_close();
+
+void lightmusic_START();
+void lightmusic_STOP();
 
 #endif

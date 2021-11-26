@@ -109,7 +109,7 @@ static void udpServerTask(void *pvParameters)
             close(sock);
         }
     }
-    //vTaskDelete(NULL);
+    vTaskDelete(NULL);
 }
 
 esp_err_t udpClient_close(void){
@@ -125,6 +125,7 @@ esp_err_t udpClient_close(void){
         return ESP_FAIL;}
 
     vTaskDelete(xUdpServerHandle);
+    xUdpServerHandle = NULL;
     ESP_LOGW(UDP, "Delete udpServerTask");
 
     return ESP_OK;
@@ -132,16 +133,32 @@ esp_err_t udpClient_close(void){
 
 esp_err_t udpClient_open(void){
 
-    portBASE_TYPE xStatus;
+    if(xUdpServerHandle == NULL){
 
-    xStatus = xTaskCreate(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle);
-    if( xStatus != pdPASS ){
-        ESP_LOGE(UDP, "udpServerTask create error");
-        return ESP_FAIL;
+        portBASE_TYPE xStatus;
+
+        xStatus = xTaskCreate(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle);
+        if( xStatus != pdPASS || xUdpServerHandle == NULL  ){
+            ESP_LOGE(UDP, "udpServerTask create error");
+            return ESP_FAIL;
+        }else{
+                vTaskSuspend(xUdpServerHandle);
+                GetTaskState(xUdpServerHandle);
+            }
+        return ESP_OK;
     }else{
-            //vTaskSuspend(xUdpServerHandle);
-            //GetTaskState("udpServerTask", xUdpServerHandle);
-        }
-    return ESP_OK;
+        ESP_LOGE(UDP, "Almost exist");
+        return ESP_FAIL;
+    }
 
+}
+
+void udpClient_START(){
+    vTaskResume(xUdpServerHandle);
+    GetTaskState(xUdpServerHandle);
+}
+
+void udpClient_STOP(){
+    vTaskResume(xUdpServerHandle);
+    GetTaskState(xUdpServerHandle);
 }
