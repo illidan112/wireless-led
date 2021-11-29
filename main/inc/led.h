@@ -18,6 +18,7 @@ esp_err_t lightmusic_open();
 esp_err_t lightDataQueue_open();
 void lightmusic_close();
 void lightDataQueue_close();
+void strip_init();
 
 void lightmusic_START();
 void lightmusic_STOP();

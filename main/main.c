@@ -37,6 +37,7 @@ void app_main(void){
     } else {
         ESP_LOGI(TAG, "Connection failed");
     }
+    strip_init();
 
 }
 

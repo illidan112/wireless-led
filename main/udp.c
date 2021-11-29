@@ -66,8 +66,8 @@ static void udpServerTask(void *pvParameters)
 
         portBASE_TYPE xStatus;
         while (1) {
-
-            ESP_LOGI(UDP, "Waiting for data");
+            //ESP_LOGW(UDP,"CoreID: %d", xPortGetCoreID());
+            //ESP_LOGI(UDP, "Waiting for data");
             struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
             socklen_t socklen = sizeof(source_addr);
             int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0, (struct sockaddr *)&source_addr, &socklen);
@@ -87,8 +87,8 @@ static void udpServerTask(void *pvParameters)
                 }
 
                 rx_buffer[len] = 0; // Null-terminate whatever we received and treat like a string...
-                ESP_LOGI(UDP, "Received %d bytes from %s:", len, addr_str);
-                ESP_LOGI(UDP, "%s", rx_buffer);
+                //ESP_LOGI(UDP, "Received %d bytes from %s:", len, addr_str);
+                //ESP_LOGI(UDP, "%s", rx_buffer);
 
                 xStatus = xQueueSendToBack( xLightDataQueue, rx_buffer, 0 );
                 if( xStatus != pdPASS ){
@@ -117,12 +117,13 @@ esp_err_t udpClient_close(void){
     ESP_LOGI(UDP, "Shutting down socket");
 
     if( shutdown(Socket, 0)!= 0){
-        ESP_LOGE(UDP, "Shutting down ERROR");
-        return ESP_FAIL;}
-
+        ESP_LOGE(UDP, "Shutting down socket ERROR");
+        //return ESP_FAIL;
+        }
     if( close(Socket)!= 0){
-        ESP_LOGE(UDP, "Shutting down ERROR");
-        return ESP_FAIL;}
+        ESP_LOGE(UDP, "Closing socket ERROR");
+        //return ESP_FAIL;
+        }
 
     vTaskDelete(xUdpServerHandle);
     xUdpServerHandle = NULL;
@@ -159,6 +160,6 @@ void udpClient_START(){
 }
 
 void udpClient_STOP(){
-    vTaskResume(xUdpServerHandle);
+    vTaskSuspend(xUdpServerHandle);
     GetTaskState(xUdpServerHandle);
 }

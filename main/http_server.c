@@ -214,27 +214,28 @@ static esp_err_t ctrl_put_handler(httpd_req_t *req)
 
     switch (cmd_num)
     {
+        ESP_LOGW(HTTP,"CoreID: %d", xPortGetCoreID());
         case START_LIGHTMUSIC:
             ESP_LOGI(HTTP, "Open tasks");
             if (openLightMusicMode() != ESP_OK){
                 break;
             }
 
-            GetTaskState(xLightMusicHandle);
-            GetTaskState(xUdpServerHandle);
-
             httpd_resp_set_hdr(req, "MODE", "On");
             //httpd_resp_set_hdr(req, "PORT", CONFIG_UDP_PORT);
-            udpClient_START();
-            lightmusic_START();
 
             // const char* resp_str = (const char*) req->user_ctx;
             // httpd_resp_send(req, NULL, HTTPD_RESP_USE_STRLEN);
 
+            udpClient_START();
+            lightmusic_START();
+
             break;
         case STOP_LIGHTMUSIC:
+            udpClient_STOP();
+            lightmusic_STOP();
             closeLightMusicMode();
-            //httpd_resp_set_hdr(req, "Mode", "Off");
+            httpd_resp_set_hdr(req, "MODE", "Off");
 
             break;
         default:

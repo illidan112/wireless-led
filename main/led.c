@@ -24,25 +24,25 @@
 xQueueHandle  xLightDataQueue = NULL;
 xTaskHandle xLightMusicHandle = NULL;
 
-//static const char *LED = "LED";
 static portBASE_TYPE xStatus;
 
-// static const rgb_t colors[] = {
-//     { .r = 0x0f, .g = 0x0f, .b = 0x0f },
-//     { .r = 0x00, .g = 0x00, .b = 0x2f },
-//     { .r = 0x00, .g = 0x2f, .b = 0x00 },
-//     { .r = 0x2f, .g = 0x00, .b = 0x00 },
-//     { .r = 0x00, .g = 0x00, .b = 0x00 },
-// };
+static const rgb_t colors[] = {
+    { .r = 0x0f, .g = 0x0f, .b = 0x0f },
+    { .r = 0x00, .g = 0x00, .b = 0x2f },
+    { .r = 0x00, .g = 0x2f, .b = 0x00 },
+    { .r = 0x2f, .g = 0x00, .b = 0x00 },
+    { .r = 0x00, .g = 0x00, .b = 0x00 },
+};
 
-// led_strip_t strip = {
-//     .type = LED_TYPE,
-//     .length = LED_STRIP_LEN,
-//     .gpio = LED_GPIO,
-//     .buf = NULL,
-// };
+led_strip_t strip = {
+    .type = LED_TYPE,
+    .length = LED_STRIP_LEN,
+    .gpio = LED_GPIO,
+    .buf = NULL,
+};
 
-//#define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
+
+#define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
 
 void xLightMusic(void *pvParameters)
 {
@@ -61,28 +61,30 @@ void xLightMusic(void *pvParameters)
     }
 
     while (1){
-        ESP_LOGI(TAG, "xLightMusic WHILE(1)");
 
-    if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
-       //Печать "Очередь должна была быть пустой!"
-       ESP_LOGW(TAG, "Queue should have been empty!");
-    }
+        if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
+        //Печать "Очередь должна была быть пустой!"
+        ESP_LOGW(TAG, "Queue should have been empty!");
+        }
 
-       xStatus = xQueueReceive( xLightDataQueue, &ReceivedData, xTicksToWait );
+        xStatus = xQueueReceive( xLightDataQueue, &ReceivedData, xTicksToWait );
 
-    if( xStatus == pdPASS ){
-       /* Данные успешно приняты из очереди, печать принятого значения. */
-        ESP_LOGI(TAG,"RECEIVED DATA: %d", ReceivedData[6]);
-        // ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
-        // ESP_ERROR_CHECK(led_strip_flush(&strip));
-        // if (++c >= COLORS_TOTAL)
-        //     c = 0;
-    }else{
-        /* Данные не были приняты из очереди даже после ожидания 1000 мс.
-            Вызов vTaskSuspend(); */
-        ESP_LOGE(TAG, "Call closeLightMusicMode(), because could not receive from the queue.");
-        //closeLightMusicMode();
-    }
+        if( xStatus == pdPASS ){
+            //ESP_LOGI(TAG,"DATA RECEIVED");
+            for (uint8_t i = 0; i < 16; i++){
+                printf(" %d",ReceivedData[i]);
+            }
+            printf("\n");
+
+            ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
+            ESP_ERROR_CHECK(led_strip_flush(&strip));
+            if (++c >= COLORS_TOTAL)
+                c = 0;
+            //ESP_LOGW(TAG,"CoreID: %d", xPortGetCoreID());
+        }else{
+            ESP_LOGE(TAG, "Failed to receive from the queue, because waiting time is over");
+            //closeLightMusicMode();
+        }
 
     }
 }
@@ -148,4 +150,9 @@ void lightmusic_STOP(){
 
     vTaskSuspend(xLightMusicHandle);
     GetTaskState(xLightMusicHandle);
+}
+
+void strip_init(){
+    ESP_LOGI(TAG,"strip init");
+    ESP_ERROR_CHECK(led_strip_init(&strip));
 }

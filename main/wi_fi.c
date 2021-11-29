@@ -112,6 +112,7 @@ esp_err_t wifi_init_sta(void)
     /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
      * happened. */
     if (bits & WIFI_CONNECTED_BIT) {
+        ESP_LOGW(WIFI,"CoreID: %d", xPortGetCoreID());
         ESP_LOGI(WIFI, "connected to ap SSID:%s password:%s",
                   ESP_WIFI_SSID,  ESP_WIFI_PASS);
     } else if (bits & WIFI_FAIL_BIT) {
