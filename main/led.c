@@ -27,22 +27,22 @@ xTaskHandle xLightMusicHandle = NULL;
 //static const char *LED = "LED";
 static portBASE_TYPE xStatus;
 
-static const rgb_t colors[] = {
-    { .r = 0x0f, .g = 0x0f, .b = 0x0f },
-    { .r = 0x00, .g = 0x00, .b = 0x2f },
-    { .r = 0x00, .g = 0x2f, .b = 0x00 },
-    { .r = 0x2f, .g = 0x00, .b = 0x00 },
-    { .r = 0x00, .g = 0x00, .b = 0x00 },
-};
+// static const rgb_t colors[] = {
+//     { .r = 0x0f, .g = 0x0f, .b = 0x0f },
+//     { .r = 0x00, .g = 0x00, .b = 0x2f },
+//     { .r = 0x00, .g = 0x2f, .b = 0x00 },
+//     { .r = 0x2f, .g = 0x00, .b = 0x00 },
+//     { .r = 0x00, .g = 0x00, .b = 0x00 },
+// };
 
-led_strip_t strip = {
-    .type = LED_TYPE,
-    .length = LED_STRIP_LEN,
-    .gpio = LED_GPIO,
-    .buf = NULL,
-};
+// led_strip_t strip = {
+//     .type = LED_TYPE,
+//     .length = LED_STRIP_LEN,
+//     .gpio = LED_GPIO,
+//     .buf = NULL,
+// };
 
-#define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
+//#define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
 
 void xLightMusic(void *pvParameters)
 {
@@ -72,40 +72,53 @@ void xLightMusic(void *pvParameters)
 
     if( xStatus == pdPASS ){
        /* Данные успешно приняты из очереди, печать принятого значения. */
-        ESP_LOGI(TAG,"RECEIVED DATA: %d", ReceivedData[0]);
-        ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
-        ESP_ERROR_CHECK(led_strip_flush(&strip));
-        if (++c >= COLORS_TOTAL)
-            c = 0;
+        ESP_LOGI(TAG,"RECEIVED DATA: %d", ReceivedData[6]);
+        // ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
+        // ESP_ERROR_CHECK(led_strip_flush(&strip));
+        // if (++c >= COLORS_TOTAL)
+        //     c = 0;
     }else{
         /* Данные не были приняты из очереди даже после ожидания 1000 мс.
             Вызов vTaskSuspend(); */
         ESP_LOGE(TAG, "Call closeLightMusicMode(), because could not receive from the queue.");
-        closeLightMusicMode();
+        //closeLightMusicMode();
     }
 
     }
 }
+
+void lightDataQueue_close(){
+    ESP_LOGW(TAG, "Delete LightDataQueue");
+    vQueueDelete(xLightDataQueue);
+    xLightDataQueue = NULL;
+}
+
+esp_err_t lightDataQueue_open(){
+    if(xLightDataQueue == NULL){
+        xLightDataQueue = xQueueCreate( 3, sizeof( uint8_t[16] ) );
+            if( xLightDataQueue == NULL ){
+                ESP_LOGE(TAG, "Queue create error");
+                return ESP_FAIL;
+                }
+    }else{
+        ESP_LOGE(TAG, "Almost exist");
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
 
 void lightmusic_close(){
 
     ESP_LOGW(TAG, "Delete LightMusicTask");
     vTaskDelete(xLightMusicHandle);
-    ESP_LOGW(TAG, "Delete LightDataQueue");
-    vQueueDelete(xLightDataQueue);
     xLightMusicHandle = NULL;
-    xLightDataQueue = NULL;
 }
-
 
 esp_err_t lightmusic_open()
 {
-    if(xLightMusicHandle == NULL && xLightDataQueue == NULL ){
-        xLightDataQueue = xQueueCreate( 3, sizeof( uint8_t[16] ) );
-        if( xLightDataQueue == NULL ){
-            ESP_LOGE(TAG, "Queue create error");
-            return ESP_FAIL;
-            }
+    if(xLightMusicHandle == NULL){
 
         xStatus = xTaskCreate(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle);
         if( xStatus != pdPASS || xLightMusicHandle==NULL ){

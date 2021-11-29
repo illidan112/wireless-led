@@ -22,7 +22,7 @@
 #include "main.h"
 #include "led.h"
 
-#define PORT 3333
+#define PORT CONFIG_UDP_PORT
 
 xTaskHandle xUdpServerHandle = NULL;
 

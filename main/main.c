@@ -75,6 +75,19 @@ void GetTaskState(xTaskHandle taskHandle){
 
 void closeLightMusicMode(){
     ESP_LOGI(TAG, "Close LightMusic Mode");
+
     lightmusic_close();
     ESP_ERROR_CHECK_WITHOUT_ABORT(udpClient_close());
+    lightDataQueue_close();
+}
+
+esp_err_t openLightMusicMode(){
+    ESP_LOGI(TAG, "Open LightMusic Mode");
+    if(lightDataQueue_open() != ESP_OK || udpClient_open() != ESP_OK || lightmusic_open() != ESP_OK){
+        ESP_LOGE(TAG, "Open LightMusic Mode ERROR");
+        return ESP_FAIL;
+    }else {
+        return ESP_OK;
+    }
+
 }

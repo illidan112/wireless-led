@@ -22,9 +22,9 @@
     Change the below entries to strings with
     the config you want - ie #define  ESP_WIFI_SSID "mywifissid"
 */
-#define ESP_WIFI_SSID      "Redmi"
-#define ESP_WIFI_PASS      "pipidastr"
-#define ESP_MAXIMUM_RETRY  30
+#define ESP_WIFI_SSID      CONFIG_ESP_WIFI_SSID
+#define ESP_WIFI_PASS      CONFIG_ESP_WIFI_PASSWORD
+#define ESP_MAXIMUM_RETRY  10
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;

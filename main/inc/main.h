@@ -11,5 +11,6 @@
 
 void GetTaskState(xTaskHandle taskHandle);
 void closeLightMusicMode();
+esp_err_t openLightMusicMode();
 
 #endif
