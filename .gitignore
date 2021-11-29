@@ -1,6 +1,5 @@
 # Automatically generated file.
 build/
-*.projbuild
 sdkconfig
+sdkconfig.old
 .vscode
-
