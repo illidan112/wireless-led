@@ -16,6 +16,7 @@
 #include "udp.h"
 
 #define TAG "MAIN"
+#define DEBUG false
 
 void app_main(void){
 
@@ -42,53 +43,76 @@ void app_main(void){
 }
 
 void GetTaskState(xTaskHandle taskHandle){
-    static const char* DEBUG = "DEBUG";
+#ifdef DEBUG
     char* taskName;
     taskName =  pcTaskGetName(taskHandle);
     eTaskState state = eTaskGetState(taskHandle);
 
-
    switch (state)
    {
         case eRunning:
-            ESP_LOGI(DEBUG,"Task %s RUNNING", taskName);
+            ESP_LOGD(TAG,"Task %s RUNNING", taskName);
             break;
         case eReady:
-            ESP_LOGI(DEBUG,"Task %s READY", taskName);
+            ESP_LOGD(TAG,"Task %s READY", taskName);
             break;
         case eBlocked:
-            ESP_LOGI(DEBUG,"Task %s BLOCKED",taskName);
+            ESP_LOGD(TAG,"Task %s BLOCKED",taskName);
             break;
         case eSuspended:
-            ESP_LOGI(DEBUG,"Task %s SUSPENDED", taskName);
+            ESP_LOGD(TAG,"Task %s SUSPENDED", taskName);
             break;
         case eDeleted:
-            ESP_LOGI(DEBUG,"Task %s DELETED", taskName);
+            ESP_LOGD(TAG,"Task %s DELETED", taskName);
             break;
         case eInvalid:
-            ESP_LOGI(DEBUG,"Task %s INVALID", taskName);
+            ESP_LOGD(TAG,"Task %s INVALID", taskName);
             break;
         default:
-            ESP_LOGI(DEBUG,"Unknown status");
+            ESP_LOGD(TAG,"Unknown status");
             break;
    }
+#endif
 }
 
 void closeLightMusicMode(){
-    ESP_LOGI(TAG, "Close LightMusic Mode");
 
-    lightmusic_close();
-    ESP_ERROR_CHECK_WITHOUT_ABORT(udpClient_close());
-    lightDataQueue_close();
+    ESP_LOGI(TAG, "Close LightMusic Mode");
+    if(xLightMusicHandle!= NULL){
+        lightmusic_close();
+    }
+    if(xUdpServerHandle != NULL){
+        ESP_ERROR_CHECK_WITHOUT_ABORT(udpServer_close());
+    }
+    if(xLightDataQueue != NULL){
+        lightDataQueue_close();
+    }
 }
 
 esp_err_t openLightMusicMode(){
-    ESP_LOGI(TAG, "Open LightMusic Mode");
-    if(lightDataQueue_open() != ESP_OK || udpClient_open() != ESP_OK || lightmusic_open() != ESP_OK){
-        ESP_LOGE(TAG, "Open LightMusic Mode ERROR");
-        return ESP_FAIL;
+    ESP_LOGI(TAG, "Opening LightMusic Mode");
+    // if(lightDataQueue_open() != ESP_OK || udpServer_open() != ESP_OK || lightmusic_open() != ESP_OK){
+    //     ESP_LOGE(TAG, "Open LightMusic Mode ERROR");
+    //     return ESP_FAIL;
+    // }else {
+    //     return ESP_OK;
+    // }
+
+    if(lightDataQueue_open() == ESP_OK){
+        if(udpServer_open() == ESP_OK){
+            if(lightmusic_open() == ESP_OK){
+                return ESP_OK;
+            }else{
+                udpServer_close();
+                lightDataQueue_close();
+                return ESP_FAIL;
+            }
+        }else{
+            lightDataQueue_close();
+            return ESP_FAIL;
+        }
     }else {
-        return ESP_OK;
+        return ESP_FAIL;
     }
 
 }

@@ -12,10 +12,10 @@
 
 extern xTaskHandle xUdpServerHandle;
 
-esp_err_t udpClient_open(void);
-esp_err_t udpClient_close(void);
+esp_err_t udpServer_open(void);
+esp_err_t udpServer_close(void);
 
-void udpClient_START();
-void udpClient_STOP();
+void udpServer_Resume();
+void udpServer_Suspend();
 
 #endif

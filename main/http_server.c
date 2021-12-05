@@ -50,6 +50,8 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     char*  buf;
     size_t buf_len;
 
+    changeColor();
+
     /* Get header value string length and allocate memory for length + 1,
      * extra byte for null termination */
     buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
@@ -214,7 +216,6 @@ static esp_err_t ctrl_put_handler(httpd_req_t *req)
 
     switch (cmd_num)
     {
-        ESP_LOGW(HTTP,"CoreID: %d", xPortGetCoreID());
         case START_LIGHTMUSIC:
             ESP_LOGI(HTTP, "Open tasks");
             if (openLightMusicMode() != ESP_OK){
@@ -227,13 +228,13 @@ static esp_err_t ctrl_put_handler(httpd_req_t *req)
             // const char* resp_str = (const char*) req->user_ctx;
             // httpd_resp_send(req, NULL, HTTPD_RESP_USE_STRLEN);
 
-            udpClient_START();
-            lightmusic_START();
+            udpServer_Resume();
+            lightMusic_Resume();
 
             break;
         case STOP_LIGHTMUSIC:
-            udpClient_STOP();
-            lightmusic_STOP();
+            udpServer_Suspend();
+            lightMusic_Suspend();
             closeLightMusicMode();
             httpd_resp_set_hdr(req, "MODE", "Off");
 

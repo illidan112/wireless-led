@@ -31,7 +31,7 @@ static int Socket = 0;
 
 static void udpServerTask(void *pvParameters)
 {
-    uint8_t rx_buffer[16];
+    uint8_t rx_buffer[dataLength + 1];
     char addr_str[128];
     int addr_family = (int)pvParameters;
     int ip_protocol = 0;
@@ -112,7 +112,7 @@ static void udpServerTask(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-esp_err_t udpClient_close(void){
+esp_err_t udpServer_close(void){
 
     ESP_LOGI(UDP, "Shutting down socket");
 
@@ -127,18 +127,18 @@ esp_err_t udpClient_close(void){
 
     vTaskDelete(xUdpServerHandle);
     xUdpServerHandle = NULL;
-    ESP_LOGW(UDP, "Delete udpServerTask");
+    ESP_LOGI(UDP, "Delete udpServerTask");
 
     return ESP_OK;
 }
 
-esp_err_t udpClient_open(void){
+esp_err_t udpServer_open(void){
 
     if(xUdpServerHandle == NULL){
 
         portBASE_TYPE xStatus;
 
-        xStatus = xTaskCreate(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle);
+        xStatus = xTaskCreatePinnedToCore(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle, 0);
         if( xStatus != pdPASS || xUdpServerHandle == NULL  ){
             ESP_LOGE(UDP, "udpServerTask create error");
             return ESP_FAIL;
@@ -154,12 +154,12 @@ esp_err_t udpClient_open(void){
 
 }
 
-void udpClient_START(){
+void udpServer_Resume(){
     vTaskResume(xUdpServerHandle);
     GetTaskState(xUdpServerHandle);
 }
 
-void udpClient_STOP(){
+void udpServer_Suspend(){
     vTaskSuspend(xUdpServerHandle);
     GetTaskState(xUdpServerHandle);
 }
