@@ -18,9 +18,12 @@
 
 #define LED_TYPE LED_STRIP_WS2812
 #define LED_GPIO 5
-#define LED_STRIP_LEN 34
-#define TAG     "LED"
+#define LED_STRIP_LEN 36
+#define LED_BRIGHTNESS 100
+#define GREEN_HUE_VAL 96
 #define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
+
+#define TAG     "LED"
 
 xQueueHandle  xLightDataQueue = NULL;
 xTaskHandle xLightMusicHandle = NULL;
@@ -28,7 +31,6 @@ xTaskHandle xLightMusicHandle = NULL;
 static portBASE_TYPE xStatus;
 const uint8_t dataLength = 2;
 static uint8_t VUlength = 0;
-static uint8_t VUpixel = 0;
 static uint8_t VUcolorStep = 0;
 void VUmetr(uint8_t l_level ,uint8_t r_level);
 
@@ -40,9 +42,9 @@ static const rgb_t colors[] = {
     { .r = 0x00, .g = 0x00, .b = 0x00 },
 };
 
-static rgb_t red = { .r = 0x2f, .g = 0x00, .b = 0x00 };
-static rgb_t green = { .r = 0x00, .g = 0x2f, .b = 0x00 };
 static rgb_t empty = { .r = 0x00, .g = 0x00, .b = 0x00 };
+
+static hsv_t green = { .hue = GREEN_HUE_VAL, .sat = 255, .val = LED_BRIGHTNESS };
 
 
 led_strip_t strip = {
@@ -59,18 +61,14 @@ void xLightMusic(void *pvParameters)
     ESP_LOGI(TAG, "xLightMusic start");
     uint8_t ReceivedData[dataLength];
     const portTickType xTicksToWait = 1000 / portTICK_RATE_MS;
-
-    if(LED_STRIP_LEN < sizeof(uint8_t)){
-        VUlength = LED_STRIP_LEN / 2;
-        VUpixel = 1;
-        VUcolorStep = 120 / VUlength;
-
-
+    VUlength = LED_STRIP_LEN / 2;
+    if(VUlength <= GREEN_HUE_VAL/2 ){
+        //VUcolorStep = GREEN_HUE_VAL / VUlength;
+        VUcolorStep = 8;
     }else{
-        VUlength = LED_STRIP_LEN / 2;
-        VUpixel = LED_STRIP_LEN / sizeof(uint8_t);
+        VUcolorStep = 1;
     }
-
+    printf ("VUcolorStep: %d\n", VUcolorStep);
     while (1){
 
         if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
@@ -166,6 +164,12 @@ void strip_init(){
     ESP_LOGI(TAG,"WS2812 strip initialization");
     led_strip_install();
     ESP_ERROR_CHECK(led_strip_init(&strip));
+    // xStatus = xTaskCreate(xRainbowFade, "rainbow", 1024*2, NULL, 1, NULL);
+    //        if( xStatus == pdPASS){
+    //         ESP_LOGW(TAG, "rainbow create");
+    //     }else{
+    //         ESP_LOGE(TAG, "rainbow create ERROR");
+    //     }
 }
 
 static size_t c = 0;
@@ -181,36 +185,113 @@ void changeColor(){
 }
 
 void VUmetr(uint8_t l_level ,uint8_t r_level){
-    uint8_t maxLevel = l_level / VUlength;
+
+    if (l_level <= 0 && r_level <= 0){
+        ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, empty));
+        ESP_ERROR_CHECK(led_strip_flush(&strip));
+        return;
+    }
+    uint8_t l_maxLevel = (l_level * VUlength)/255;
+    uint8_t r_maxLevel = (r_level * VUlength)/255;
+    int ihue = GREEN_HUE_VAL;
+
     rgb_t rgb_color;
+    hsv_t hsv_color = {
+            .hue = 0,
+            .sat = 255,
+            .val = LED_BRIGHTNESS,
+        };
 
     ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, empty));
     ESP_ERROR_CHECK(led_strip_flush(&strip));
 
+    for(int i = 0; i <= l_maxLevel ; i++){
 
-    //level channel
-    for(int i = 0; i < maxLevel; i++){
+        if (ihue < 0 || ihue > GREEN_HUE_VAL)
+            ihue = 0;
 
-        hsv_t hsv_color = {
-                .hue = 120 - (VUcolorStep * i+1),
-                .sat = 255,
-                .val = 255,
-            };
+        hsv_color.hue = ihue;
         rgb_color = hsv2rgb_rainbow(hsv_color);
+
         ESP_ERROR_CHECK(led_strip_set_pixels(&strip, VUlength - i, 1, &rgb_color));
+        ihue -= VUcolorStep;
     }
-    //right channel
-    maxLevel = r_level / VUlength;
-    for(int i = 1; i <= maxLevel; i++){
-        hsv_t hsv_color = {
-                .hue = 120 - (VUcolorStep * i),
-                .sat = 255,
-                .val = 255,
-            };
-        rgb_color = hsv2rgb_rainbow(hsv_color);
-        ESP_ERROR_CHECK(led_strip_set_pixels(&strip, VUlength + i, 1, &rgb_color));
-    }
+        ihue = GREEN_HUE_VAL;
+        for(int i = 1; i <= r_maxLevel ; i++){
 
+        if (ihue < 0 || ihue > GREEN_HUE_VAL)
+            ihue = 0;
+
+        hsv_color.hue = ihue;
+        rgb_color = hsv2rgb_rainbow(hsv_color);
+
+        ESP_ERROR_CHECK(led_strip_set_pixels(&strip, VUlength + i, 1, &rgb_color));
+        ihue -= VUcolorStep;
+    }
     ESP_ERROR_CHECK(led_strip_flush(&strip));
 
+}
+
+
+void xRainbowLoop(void *pvParameters)
+{ //-m3-LOOP HSV RAINBOW
+    hsv_t hsv_color = {
+                .hue = 0,
+                .sat = 255,
+                .val = 150,
+            };
+    rgb_t rgb_color;
+
+    static uint16_t idex = 0, ihue = 0;
+    static uint16_t step = 5;
+
+    portTickType xLastWakeTime;
+    xLastWakeTime = xTaskGetTickCount();
+    while (1)
+    {
+        idex++;
+        ihue += step;
+        if (idex >= LED_STRIP_LEN)
+        {
+            idex = 0;
+        }
+        if (ihue > 255)
+        {
+            ihue = 0;
+        }
+        hsv_color.hue = ihue;
+        rgb_color = hsv2rgb_rainbow(hsv_color);
+        ESP_ERROR_CHECK(led_strip_set_pixels(&strip, idex, 1, &rgb_color));
+        ESP_ERROR_CHECK(led_strip_flush(&strip));
+        vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_RATE_MS ) );
+    }
+}
+
+void xRainbowFade(void *pvParameters)
+{ //-m3-LOOP HSV RAINBOW
+    hsv_t hsv_color = {
+                .hue = 0,
+                .sat = 255,
+                .val = 100,
+            };
+    rgb_t rgb_color;
+
+    static uint16_t ihue = 0;
+    static uint16_t step = 1;
+
+    portTickType xLastWakeTime;
+    xLastWakeTime = xTaskGetTickCount();
+    while (1)
+    {
+        ihue += step;
+        if (ihue > 255)
+        {
+            ihue = 0;
+        }
+        hsv_color.hue = ihue;
+        rgb_color = hsv2rgb_rainbow(hsv_color);
+        ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, rgb_color));
+        ESP_ERROR_CHECK(led_strip_flush(&strip));
+        vTaskDelayUntil( &xLastWakeTime, ( 50 / portTICK_RATE_MS ) );
+    }
 }

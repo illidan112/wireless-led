@@ -19,6 +19,8 @@ esp_err_t lightmusic_open();
 esp_err_t lightDataQueue_open();
 void lightmusic_close();
 void lightDataQueue_close();
+void xRainbowLoop(void *pvParameters);
+void xRainbowFade(void *pvParameters);
 
 void strip_init();
 void changeColor();
