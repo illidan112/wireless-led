@@ -18,7 +18,7 @@
 
 #define LED_TYPE LED_STRIP_WS2812
 #define LED_GPIO 5
-#define LED_STRIP_LEN 36
+#define LED_STRIP_LEN 176
 #define LED_BRIGHTNESS 100
 #define GREEN_HUE_VAL 96
 #define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
@@ -63,10 +63,10 @@ void xLightMusic(void *pvParameters)
     const portTickType xTicksToWait = 1000 / portTICK_RATE_MS;
     VUlength = LED_STRIP_LEN / 2;
     if(VUlength <= GREEN_HUE_VAL/2 ){
-        //VUcolorStep = GREEN_HUE_VAL / VUlength;
-        VUcolorStep = 8;
+        VUcolorStep = GREEN_HUE_VAL / VUlength;
+        //VUcolorStep = 8;
     }else{
-        VUcolorStep = 1;
+        VUcolorStep = 2;
     }
     printf ("VUcolorStep: %d\n", VUcolorStep);
     while (1){
@@ -164,7 +164,7 @@ void strip_init(){
     ESP_LOGI(TAG,"WS2812 strip initialization");
     led_strip_install();
     ESP_ERROR_CHECK(led_strip_init(&strip));
-    // xStatus = xTaskCreate(xRainbowFade, "rainbow", 1024*2, NULL, 1, NULL);
+    // xStatus = xTaskCreatePinnedToCore(xRainbowFade, "rainbow", 1024*2, NULL, 1, NULL, 1);
     //        if( xStatus == pdPASS){
     //         ESP_LOGW(TAG, "rainbow create");
     //     }else{
@@ -191,6 +191,7 @@ void VUmetr(uint8_t l_level ,uint8_t r_level){
         ESP_ERROR_CHECK(led_strip_flush(&strip));
         return;
     }
+
     uint8_t l_maxLevel = (l_level * VUlength)/255;
     uint8_t r_maxLevel = (r_level * VUlength)/255;
     int ihue = GREEN_HUE_VAL;
@@ -263,7 +264,7 @@ void xRainbowLoop(void *pvParameters)
         rgb_color = hsv2rgb_rainbow(hsv_color);
         ESP_ERROR_CHECK(led_strip_set_pixels(&strip, idex, 1, &rgb_color));
         ESP_ERROR_CHECK(led_strip_flush(&strip));
-        vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_RATE_MS ) );
+        vTaskDelayUntil( &xLastWakeTime, ( 50 / portTICK_RATE_MS ) );
     }
 }
 
@@ -276,8 +277,8 @@ void xRainbowFade(void *pvParameters)
             };
     rgb_t rgb_color;
 
-    static uint16_t ihue = 0;
-    static uint16_t step = 1;
+    uint16_t ihue = 0;
+    uint16_t step = 4;
 
     portTickType xLastWakeTime;
     xLastWakeTime = xTaskGetTickCount();
@@ -292,6 +293,6 @@ void xRainbowFade(void *pvParameters)
         rgb_color = hsv2rgb_rainbow(hsv_color);
         ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, rgb_color));
         ESP_ERROR_CHECK(led_strip_flush(&strip));
-        vTaskDelayUntil( &xLastWakeTime, ( 50 / portTICK_RATE_MS ) );
+        vTaskDelayUntil( &xLastWakeTime, ( 100 / portTICK_RATE_MS ) );
     }
 }
