@@ -105,8 +105,12 @@ static void udpServerTask(void *pvParameters)
 
         if (sock != -1) {
             ESP_LOGE(UDP, "Shutting down socket and restarting...");
-            shutdown(sock, 0);
-            close(sock);
+            if( shutdown(sock, 0)!= 0){
+                ESP_LOGE(UDP, "Shutting down socket ERROR");
+            }
+            if( close(sock)!= 0){
+                ESP_LOGE(UDP, "Closing socket ERROR");
+            }
         }
     }
     vTaskDelete(NULL);

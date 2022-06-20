@@ -10,7 +10,7 @@
 #include "sdkconfig.h"
 #include <string.h>
 
-#include "http_server.h"
+#include "tcp_server.h"
 #include "wi_fi.h"
 #include "led.h"
 #include "udp.h"
@@ -31,15 +31,16 @@ void app_main(void){
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    if (wifi_init_sta() == ESP_OK) {
-        /* Start the server for the first time */
-        ESP_LOGI(TAG, "Start http server");
-        http_server_start();
-    } else {
-        ESP_LOGI(TAG, "Connection failed");
-    }
-    strip_init();
 
+    if (!(wifi_init_sta() == ESP_OK)) {             //Connecting to wifi station
+        ESP_LOGE(TAG, "WI-FI conneting failed");
+    } else {
+        if (!(tcpServer_open() == ESP_OK)){         //Start the TCP server for the first time
+            ESP_LOGE(TAG, "TCP crearing failed");
+        } else {
+            //strip_init();
+        }
+    }
 }
 
 void GetTaskState(xTaskHandle taskHandle){
