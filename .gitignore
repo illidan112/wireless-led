@@ -4,3 +4,6 @@ sdkconfig
 sdkconfig.old
 sdkconfigs
 .vscode
+
+#
+export_idf_py.bat
