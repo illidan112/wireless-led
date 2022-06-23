@@ -32,18 +32,20 @@
 #define KEEPALIVE_INTERVAL          CONFIG_KEEPALIVE_INTERVAL
 #define KEEPALIVE_COUNT             CONFIG_KEEPALIVE_COUNT
 
-#define ESP_MDNS_URI            "esp_led"
-#define ESP_MDNS_INSTANCE_NAME  "wireless_led"
+#define ESP_MDNS_URI                "esp_led"
+#define ESP_MDNS_INSTANCE_NAME      "wireless_led"
+
+#define DEFAULT_MODE                22
 
 xTaskHandle xTCPServerHandle = NULL;
 
 static const char *TCP = "TCP";
 static const char *MDNS = "MDNS";
 
-typedef enum CMD_t {
-    START_LIGHTMUSIC = 11,
-    STOP_LIGHTMUSIC = 22,
-} CMD_t;
+typedef enum lightmode{
+    LIGHTMUSIC = 11,
+    BACKGROUND_LIGHT = 22,
+}lightmode;
 
 static void initialise_mdns(void){
     //initialize mDNS
@@ -100,7 +102,7 @@ static void approve_receive(const int sock,char* tx_buffer){
 //     } while (len > 0);
 // }
 
-static esp_err_t command_switcher(const int sock){
+uint8_t receiveCommand(const int sock){
 
     int len;
     char rx_buffer[128];
@@ -119,13 +121,19 @@ static esp_err_t command_switcher(const int sock){
         }
     } while (len > 0);
 
-   //Преобразование строки в число типа int
+   //Convert string to int
     cmd_num = atoi (rx_buffer);
-    ESP_LOGE (TCP, "%d",cmd_num);
+    ESP_LOGI (TCP, "receive command: %d",cmd_num);
+
+    return cmd_num;
+
+}
+
+static esp_err_t modeSwitcher(uint8_t cmd_num){
 
     switch (cmd_num)
     {
-        case START_LIGHTMUSIC:
+        case LIGHTMUSIC:
             ESP_LOGI(TCP, "Open tasks");
             // if (openLightMusicMode() != ESP_OK){
             //     break;
@@ -133,16 +141,16 @@ static esp_err_t command_switcher(const int sock){
 
             // udpServer_Resume();
             // lightMusic_Resume();
-            approve_receive(sock, rx_buffer);
+            //approve_receive(sock, rx_buffer);
 
             break;
 
-        case STOP_LIGHTMUSIC:
+        case BACKGROUND_LIGHT:
             // udpServer_Suspend();
             // lightMusic_Suspend();
             // closeLightMusicMode();
 
-            approve_receive(sock, rx_buffer);
+            //approve_receive(sock, rx_buffer);
 
             break;
         default:
@@ -154,6 +162,7 @@ static esp_err_t command_switcher(const int sock){
 
 static void tcpServerTask(void *pvParameters)
 {
+    uint8_t mode_number = 0;
     char addr_str[128];
     int addr_family = (int)pvParameters;
     int ip_protocol = 0;
@@ -211,6 +220,9 @@ static void tcpServerTask(void *pvParameters)
         goto CLEAN_UP;
     }
 
+    //turning on default mode
+    modeSwitcher(DEFAULT_MODE);
+
     while (1) {
 
         ESP_LOGI(TCP, "Socket listening");
@@ -239,9 +251,11 @@ static void tcpServerTask(void *pvParameters)
 #endif
         ESP_LOGI(TCP, "Socket accepted ip address: %s", addr_str);
 
-        //do_retransmit(sock);
+        // receive mode number
+        mode_number = receiveCommand(sock);
 
-        command_switcher(sock);
+        //switching mode
+        modeSwitcher(mode_number);
 
         shutdown(sock, 0);
         close(sock);
@@ -252,7 +266,7 @@ CLEAN_UP:
     vTaskDelete(NULL);
 }
 
-esp_err_t tcpServer_open(void)
+esp_err_t tcpServer_create(core_ID id )
 {
 
     initialise_mdns();
@@ -262,16 +276,18 @@ esp_err_t tcpServer_open(void)
         portBASE_TYPE xStatus;
 
 #ifdef CONFIG_IPV4
-        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET, 5, &xTCPServerHandle, 0);
+        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET, 5, &xTCPServerHandle, id);
 #endif
 #ifdef CONFIG_IPV6
-        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET6, 5, &xTCPServerHandle, 0);
+        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET6, 5, &xTCPServerHandle, id);
 #endif
 
         if( xStatus != pdPASS || xTCPServerHandle == NULL  ){
             ESP_LOGE(TCP, "TCPServerTask create error");
             return ESP_FAIL;
         }
+
+        vTaskSuspend(xTCPServerHandle);         // tcpServer_create() only for initialization, not for turn on
         return ESP_OK;
     }else{
         ESP_LOGE(TCP, "Almost exist");
@@ -280,43 +296,6 @@ esp_err_t tcpServer_open(void)
 
 }
 
-
-
-
-// {
-//     int cmd_num = (int) buf;
-
-//     switch (cmd_num)
-//     {
-//         case START_LIGHTMUSIC:
-//             ESP_LOGI(HTTP, "Open tasks");
-//             if (openLightMusicMode() != ESP_OK){
-//                 break;
-//             }
-
-//             httpd_resp_set_hdr(req, "MODE", "On");
-//             //httpd_resp_set_hdr(req, "PORT", CONFIG_UDP_PORT);
-
-//             // const char* resp_str = (const char*) req->user_ctx;
-//             // httpd_resp_send(req, NULL, HTTPD_RESP_USE_STRLEN);
-
-//             udpServer_Resume();
-//             lightMusic_Resume();
-
-//             break;
-//         case STOP_LIGHTMUSIC:
-//             udpServer_Suspend();
-//             lightMusic_Suspend();
-//             closeLightMusicMode();
-//             httpd_resp_set_hdr(req, "MODE", "Off");
-
-//             break;
-//         default:
-//             ESP_LOGW(HTTP, "Unknown command");
-//             break;
-//     }
-
-//     /* Respond with empty body */
-//     httpd_resp_send(req, NULL, 0);
-//     return ESP_OK;
-// }
+void tcpServer_Resume(){
+    vTaskResume(xTCPServerHandle);
+}

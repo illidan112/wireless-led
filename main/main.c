@@ -14,6 +14,7 @@
 #include "wi_fi.h"
 #include "led.h"
 #include "udp.h"
+#include "main.h"
 
 #define TAG "MAIN"
 #define DEBUG false
@@ -31,16 +32,10 @@ void app_main(void){
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    Initialization();
 
-    if (!(wifi_init_sta() == ESP_OK)) {             //Connecting to wifi station
-        ESP_LOGE(TAG, "WI-FI conneting failed");
-    } else {
-        if (!(tcpServer_open() == ESP_OK)){         //Start the TCP server for the first time
-            ESP_LOGE(TAG, "TCP crearing failed");
-        } else {
-            //strip_init();
-        }
-    }
+    switcher_Resume();
+
 }
 
 void GetTaskState(xTaskHandle taskHandle){
@@ -76,44 +71,61 @@ void GetTaskState(xTaskHandle taskHandle){
 #endif
 }
 
-void closeLightMusicMode(){
+// void closeLightMusicMode(){
 
-    ESP_LOGI(TAG, "Close LightMusic Mode");
-    if(xLightMusicHandle!= NULL){
-        lightmusic_close();
+//     ESP_LOGI(TAG, "Close LightMusic Mode");
+//     if(xLightMusicHandle!= NULL){
+//         lightmusic_close();
+//     }
+//     if(xUdpServerHandle != NULL){
+//         ESP_ERROR_CHECK_WITHOUT_ABORT(udpServer_close());
+//     }
+//     if(xLightDataQueue != NULL){
+//         lightDataQueue_close();
+//     }
+// }
+
+// esp_err_t openLightMusicMode(){
+//     ESP_LOGI(TAG, "Opening LightMusic Mode");
+
+//     if(lightDataQueue_open() == ESP_OK){
+//         if(udpServer_open(core_ID id) == ESP_OK){
+//             if(lightmusic_open() == ESP_OK){
+//                 return ESP_OK;
+//             }else{
+//                 udpServer_close();
+//                 lightDataQueue_close();
+//                 return ESP_FAIL;
+//             }
+//         }else{
+//             lightDataQueue_close();
+//             return ESP_FAIL;
+//         }
+//     }else {
+//         return ESP_FAIL;
+//     }
+
+//}
+
+void Initialization(){
+
+    if (wifi_init_sta(NETWORK_CORE) != ESP_OK) {             //Connecting to wifi station
+        ESP_LOGE(TAG, "WI-FI conneting failed");
     }
-    if(xUdpServerHandle != NULL){
-        ESP_ERROR_CHECK_WITHOUT_ABORT(udpServer_close());
+
+    if (tcpServer_create(NETWORK_CORE) != ESP_OK){         //Start TCP server for the first time
+        ESP_LOGE(TAG, "TCP crearing failed");
     }
-    if(xLightDataQueue != NULL){
-        lightDataQueue_close();
+
+    if (udpServer_create(NETWORK_CORE) != ESP_OK){
+        ESP_LOGE(TAG, "UDP crearing failed");
+    }
+
+    if (LED_init(LED_CORE) != ESP_OK){
+        ESP_LOGE(TAG, "LED initialization failed");
     }
 }
 
-esp_err_t openLightMusicMode(){
-    ESP_LOGI(TAG, "Opening LightMusic Mode");
-    // if(lightDataQueue_open() != ESP_OK || udpServer_open() != ESP_OK || lightmusic_open() != ESP_OK){
-    //     ESP_LOGE(TAG, "Open LightMusic Mode ERROR");
-    //     return ESP_FAIL;
-    // }else {
-    //     return ESP_OK;
-    // }
-
-    if(lightDataQueue_open() == ESP_OK){
-        if(udpServer_open() == ESP_OK){
-            if(lightmusic_open() == ESP_OK){
-                return ESP_OK;
-            }else{
-                udpServer_close();
-                lightDataQueue_close();
-                return ESP_FAIL;
-            }
-        }else{
-            lightDataQueue_close();
-            return ESP_FAIL;
-        }
-    }else {
-        return ESP_FAIL;
-    }
-
+void switcher_Resume(){
+    void tcpServer_Resume();
 }

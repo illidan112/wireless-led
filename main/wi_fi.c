@@ -2,8 +2,6 @@
     WiFi station
 */
 
-#include "wi_fi.h"
-
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -16,6 +14,9 @@
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
+
+#include "main.h"
+#include "wi_fi.h"
 
 
 /*
@@ -75,7 +76,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t wifi_init_sta(void)
+esp_err_t wifi_init_sta(core_ID id)
 {
     esp_err_t ret_value = ESP_OK;
     s_wifi_event_group = xEventGroupCreate();
@@ -84,6 +85,7 @@ esp_err_t wifi_init_sta(void)
     assert(sta_netif);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    cfg.wifi_task_core_id = id;
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
@@ -111,8 +113,7 @@ esp_err_t wifi_init_sta(void)
 
     /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
      * happened. */
-    if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGW(WIFI,"CoreID: %d", xPortGetCoreID());
+    if (bits & WIFI_CONNECTED_BIT){
         ESP_LOGI(WIFI, "connected to ap SSID:%s password:%s",
                   ESP_WIFI_SSID,  ESP_WIFI_PASS);
     } else if (bits & WIFI_FAIL_BIT) {

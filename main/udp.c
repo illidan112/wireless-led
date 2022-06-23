@@ -116,9 +116,9 @@ static void udpServerTask(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-esp_err_t udpServer_close(void){
+esp_err_t udpServer_delete(void){
 
-    ESP_LOGI(UDP, "Shutting down socket");
+    ESP_LOGI(UDP, "Deleting start");
 
     if( shutdown(Socket, 0)!= 0){
         ESP_LOGE(UDP, "Shutting down socket ERROR");
@@ -131,18 +131,18 @@ esp_err_t udpServer_close(void){
 
     vTaskDelete(xUdpServerHandle);
     xUdpServerHandle = NULL;
-    ESP_LOGI(UDP, "Delete udpServerTask");
+    ESP_LOGI(UDP, "udpServerTask deleted");
 
     return ESP_OK;
 }
 
-esp_err_t udpServer_open(void){
+esp_err_t udpServer_create(core_ID id){
 
     if(xUdpServerHandle == NULL){
 
         portBASE_TYPE xStatus;
 
-        xStatus = xTaskCreatePinnedToCore(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle, 0);
+        xStatus = xTaskCreatePinnedToCore(udpServerTask, "udp_server", 4096, (void*)AF_INET, 2, &xUdpServerHandle, id);
         if( xStatus != pdPASS || xUdpServerHandle == NULL  ){
             ESP_LOGE(UDP, "udpServerTask create error");
             return ESP_FAIL;

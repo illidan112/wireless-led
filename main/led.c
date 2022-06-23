@@ -18,7 +18,7 @@
 
 #define LED_TYPE LED_STRIP_WS2812
 #define LED_GPIO 5
-#define LED_STRIP_LEN 176
+#define LED_STRIP_LEN 90
 #define LED_BRIGHTNESS 100
 #define GREEN_HUE_VAL 96
 #define COLORS_TOTAL (sizeof(colors) / sizeof(rgb_t))
@@ -44,7 +44,7 @@ static const rgb_t colors[] = {
 
 static rgb_t empty = { .r = 0x00, .g = 0x00, .b = 0x00 };
 
-static hsv_t green = { .hue = GREEN_HUE_VAL, .sat = 255, .val = LED_BRIGHTNESS };
+//static hsv_t green = { .hue = GREEN_HUE_VAL, .sat = 255, .val = LED_BRIGHTNESS };
 
 
 led_strip_t strip = {
@@ -97,13 +97,22 @@ void xLightMusic(void *pvParameters)
     }
 }
 
-void lightDataQueue_close(){
-    ESP_LOGI(TAG, "Delete LightDataQueue");
+void lightDataQueue_delete(){
+    ESP_LOGW(TAG, "Delete LightDataQueue");
     vQueueDelete(xLightDataQueue);
     xLightDataQueue = NULL;
 }
 
-esp_err_t lightDataQueue_open(){
+void lightMusicMode_delete(){
+
+    lightDataQueue_delete();
+
+    ESP_LOGW(TAG, "Deleting LightMusicTask");
+    vTaskDelete(xLightMusicHandle);
+    xLightMusicHandle = NULL;
+}
+
+esp_err_t lightDataQueue_create(){
     if(xLightDataQueue == NULL){
         xLightDataQueue = xQueueCreate( 3, sizeof( uint8_t[dataLength] ) );
             if( xLightDataQueue == NULL ){
@@ -118,27 +127,24 @@ esp_err_t lightDataQueue_open(){
     return ESP_OK;
 }
 
-
-void lightmusic_close(){
-
-    ESP_LOGW(TAG, "Delete LightMusicTask");
-    vTaskDelete(xLightMusicHandle);
-    xLightMusicHandle = NULL;
-}
-
-esp_err_t lightmusic_open()
+esp_err_t lightMusicMode_create(core_ID id)
 {
+
+    if(!(lightDataQueue_create() == ESP_OK)){
+        return ESP_FAIL;
+    }
+
     if(xLightMusicHandle == NULL){
 
-        xStatus = xTaskCreatePinnedToCore(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle, 1);
+        xStatus = xTaskCreatePinnedToCore(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle, id);
         if( xStatus != pdPASS || xLightMusicHandle==NULL ){
             ESP_LOGE(TAG, "Task create error");
             return ESP_FAIL;
-        }
-        else{
+
+        }else{
                 vTaskSuspend(xLightMusicHandle);
                 GetTaskState(xLightMusicHandle);
-            }
+        }
 
         return ESP_OK;
     } else{
@@ -148,31 +154,54 @@ esp_err_t lightmusic_open()
 
 }
 
-void lightMusic_Resume(){
+// void lightMusic_Resume(){
 
-    vTaskResume(xLightMusicHandle);
-    GetTaskState(xLightMusicHandle);
+//     vTaskResume(xLightMusicHandle);
+//     GetTaskState(xLightMusicHandle);
+// }
+
+// void lightMusic_Suspend(){
+
+//     vTaskSuspend(xLightMusicHandle);
+//     GetTaskState(xLightMusicHandle);
+// }
+
+esp_err_t backgroundLightMode_create(core_ID id){
+
+    int i =0;
+    i++;
+    return ESP_OK;
 }
 
-void lightMusic_Suspend(){
-
-    vTaskSuspend(xLightMusicHandle);
-    GetTaskState(xLightMusicHandle);
-}
-
-void strip_init(){
+esp_err_t strip_init(){
     ESP_LOGI(TAG,"WS2812 strip initialization");
     led_strip_install();
-    ESP_ERROR_CHECK(led_strip_init(&strip));
-    // xStatus = xTaskCreatePinnedToCore(xRainbowFade, "rainbow", 1024*2, NULL, 1, NULL, 1);
-    //        if( xStatus == pdPASS){
-    //         ESP_LOGW(TAG, "rainbow create");
-    //     }else{
-    //         ESP_LOGE(TAG, "rainbow create ERROR");
-    //     }
+    if(led_strip_init(&strip) != ESP_OK ){
+        ESP_LOGE(TAG, "strip init error");
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
+esp_err_t LED_init(core_ID id){
+
+    if(strip_init() != ESP_OK){
+        return ESP_FAIL;
+    }
+    if(lightMusicMode_create(id) != ESP_OK){
+        return ESP_FAIL;
+    }
+    if(backgroundLightMode_create(id) != ESP_OK){
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+
+
 }
 
 static size_t c = 0;
+
 
 void changeColor(){
     ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, colors[c]));
@@ -291,6 +320,7 @@ void xRainbowFade(void *pvParameters)
         }
         hsv_color.hue = ihue;
         rgb_color = hsv2rgb_rainbow(hsv_color);
+
         ESP_ERROR_CHECK(led_strip_fill(&strip, 0, strip.length, rgb_color));
         ESP_ERROR_CHECK(led_strip_flush(&strip));
         vTaskDelayUntil( &xLastWakeTime, ( 100 / portTICK_RATE_MS ) );
