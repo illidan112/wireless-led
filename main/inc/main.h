@@ -15,10 +15,12 @@ typedef enum core_ID {
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-void switcher_Resume();
 void Initialization();
+void switcher_Resume();
+void lightMusicMode_play();
+void lightMusicMode_pause();
+void backgroundLightMode_play(void);
+void backgroundLightMode_pause(void);
 void GetTaskState(xTaskHandle taskHandle);
-// void closeLightMusicMode();
-// esp_err_t openLightMusicMode();
 
 #endif

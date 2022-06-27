@@ -14,6 +14,7 @@
 
 extern xQueueHandle xLightDataQueue;
 extern xTaskHandle xLightMusicHandle;
+extern xTaskHandle xBackgroundLightHandle;
 extern const uint8_t dataLength;
 
 //esp_err_t lightMusicMode_create();
@@ -21,13 +22,14 @@ extern const uint8_t dataLength;
 //void lightMusicMode_delete();
 //void lightDataQueue_delete();
 esp_err_t LED_init(core_ID);
-void xRainbowLoop(void *pvParameters);
-void xRainbowFade(void *pvParameters);
+// void xRainbowLoop(void *pvParameters);
+// void xRainbowFade(void *pvParameters);
 
-//void strip_init();
-void changeColor();
+// void changeColor();
 
-// void lightMusic_Resume();
-// void lightMusic_Suspend();
+void lightMusic_Resume();
+void lightMusic_Suspend();
+void backgroundLight_Resume();
+void backgroundLight_Suspend();
 
 #endif

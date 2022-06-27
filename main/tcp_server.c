@@ -26,7 +26,6 @@
 #include "tcp_server.h"
 #include "main.h"
 
-
 #define PORT                        CONFIG_TCP_PORT
 #define KEEPALIVE_IDLE              CONFIG_KEEPALIVE_IDLE
 #define KEEPALIVE_INTERVAL          CONFIG_KEEPALIVE_INTERVAL
@@ -36,6 +35,7 @@
 #define ESP_MDNS_INSTANCE_NAME      "wireless_led"
 
 #define DEFAULT_MODE                22
+
 
 xTaskHandle xTCPServerHandle = NULL;
 
@@ -73,35 +73,6 @@ static void approve_receive(const int sock,char* tx_buffer){
     }
 }
 
-// static void do_retransmit(const int sock)
-// {
-//     int len;
-//     char rx_buffer[128];
-
-//     do {
-//         len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
-//         if (len < 0) {
-//             ESP_LOGE(TCP, "Error occurred during receiving: errno %d", errno);
-//         } else if (len == 0) {
-//             ESP_LOGW(TCP, "Connection closed");
-//         } else {
-//             rx_buffer[len] = 0; // Null-terminate whatever is received and treat it like a string
-//             ESP_LOGI(TCP, "Received %d bytes: %s", len, rx_buffer);
-
-//             // send() can return less bytes than supplied length.
-//             // Walk-around for robust implementation.
-//             int to_write = len;
-//             while (to_write > 0) {
-//                 int written = send(sock, rx_buffer + (len - to_write), to_write, 0);
-//                 if (written < 0) {
-//                     ESP_LOGE(TCP, "Error occurred during sending: errno %d", errno);
-//                 }
-//                 to_write -= written;
-//             }
-//         }
-//     } while (len > 0);
-// }
-
 uint8_t receiveCommand(const int sock){
 
     int len;
@@ -134,27 +105,25 @@ static esp_err_t modeSwitcher(uint8_t cmd_num){
     switch (cmd_num)
     {
         case LIGHTMUSIC:
-            ESP_LOGI(TCP, "Open tasks");
-            // if (openLightMusicMode() != ESP_OK){
-            //     break;
-            // }
+            ESP_LOGI(TCP, "LIGHTMUSIC");
 
-            // udpServer_Resume();
-            // lightMusic_Resume();
+            backgroundLightMode_pause();
+            lightMusicMode_play();
             //approve_receive(sock, rx_buffer);
 
             break;
 
         case BACKGROUND_LIGHT:
-            // udpServer_Suspend();
-            // lightMusic_Suspend();
-            // closeLightMusicMode();
+            ESP_LOGI(TCP, "BACKGROUND_LIGHT");
 
+            lightMusicMode_pause();
+            backgroundLightMode_play();
             //approve_receive(sock, rx_buffer);
 
             break;
         default:
             ESP_LOGW(TCP, "Unknown command");
+            return ESP_FAIL;
             break;
     }
     return ESP_OK;
@@ -276,10 +245,10 @@ esp_err_t tcpServer_create(core_ID id )
         portBASE_TYPE xStatus;
 
 #ifdef CONFIG_IPV4
-        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET, 5, &xTCPServerHandle, id);
+        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET, 1, &xTCPServerHandle, id);
 #endif
 #ifdef CONFIG_IPV6
-        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET6, 5, &xTCPServerHandle, id);
+        xStatus = xTaskCreatePinnedToCore(tcpServerTask, "tcp_server", 4096, (void *)AF_INET6, 1, &xTCPServerHandle, id);
 #endif
 
         if( xStatus != pdPASS || xTCPServerHandle == NULL  ){
@@ -288,6 +257,7 @@ esp_err_t tcpServer_create(core_ID id )
         }
 
         vTaskSuspend(xTCPServerHandle);         // tcpServer_create() only for initialization, not for turn on
+        GetTaskState(xTCPServerHandle);
         return ESP_OK;
     }else{
         ESP_LOGE(TCP, "Almost exist");
@@ -297,5 +267,6 @@ esp_err_t tcpServer_create(core_ID id )
 }
 
 void tcpServer_Resume(){
+    ESP_LOGI(TCP, " tcpServer_Resume");
     vTaskResume(xTCPServerHandle);
 }

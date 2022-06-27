@@ -7,6 +7,10 @@
 #define _TCP_H_
 
 #include "main.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+extern xTaskHandle xTCPServerHandle;
 
 /* Function responsible for configuring and starting the tcp_server service.
  * See tcp_server.c for implementation */

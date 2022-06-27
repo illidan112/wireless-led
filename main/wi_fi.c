@@ -57,7 +57,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         }
         ESP_LOGI(WIFI,"connect to the AP fail");
     } else if (event_base == IP_EVENT ){
-        printf("IP_EVENT \n");
         switch (event_id){
             case IP_EVENT_STA_GOT_IP:
             {

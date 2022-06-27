@@ -4,6 +4,7 @@
  */
 
 #include "led.h"
+#include "tcp_server.h"
 #include "main.h"
 
 #include <stdio.h>
@@ -27,6 +28,9 @@
 
 xQueueHandle  xLightDataQueue = NULL;
 xTaskHandle xLightMusicHandle = NULL;
+xTaskHandle xBackgroundLightHandle = NULL;
+
+void xRainbowFade(void *pvParameters);
 
 static portBASE_TYPE xStatus;
 const uint8_t dataLength = 2;
@@ -68,7 +72,7 @@ void xLightMusic(void *pvParameters)
     }else{
         VUcolorStep = 2;
     }
-    printf ("VUcolorStep: %d\n", VUcolorStep);
+
     while (1){
 
         if( uxQueueMessagesWaiting( xLightDataQueue ) != 0 ){
@@ -130,7 +134,8 @@ esp_err_t lightDataQueue_create(){
 esp_err_t lightMusicMode_create(core_ID id)
 {
 
-    if(!(lightDataQueue_create() == ESP_OK)){
+    if(lightDataQueue_create() != ESP_OK){
+        ESP_LOGE(TAG, "lightDataQueue_create error");
         return ESP_FAIL;
     }
 
@@ -138,13 +143,13 @@ esp_err_t lightMusicMode_create(core_ID id)
 
         xStatus = xTaskCreatePinnedToCore(xLightMusic, "LightMusic", configMINIMAL_STACK_SIZE * 5, NULL, 3, &xLightMusicHandle, id);
         if( xStatus != pdPASS || xLightMusicHandle==NULL ){
-            ESP_LOGE(TAG, "Task create error");
+            ESP_LOGE(TAG, "xLightMusic create error");
             return ESP_FAIL;
 
-        }else{
-                vTaskSuspend(xLightMusicHandle);
-                GetTaskState(xLightMusicHandle);
         }
+
+        vTaskSuspend(xLightMusicHandle);
+        GetTaskState(xLightMusicHandle);
 
         return ESP_OK;
     } else{
@@ -154,27 +159,39 @@ esp_err_t lightMusicMode_create(core_ID id)
 
 }
 
-// void lightMusic_Resume(){
+void lightMusic_Resume(){
+    vTaskResume(xLightMusicHandle);
+}
 
-//     vTaskResume(xLightMusicHandle);
-//     GetTaskState(xLightMusicHandle);
-// }
-
-// void lightMusic_Suspend(){
-
-//     vTaskSuspend(xLightMusicHandle);
-//     GetTaskState(xLightMusicHandle);
-// }
+void lightMusic_Suspend(){
+    vTaskSuspend(xLightMusicHandle);
+}
 
 esp_err_t backgroundLightMode_create(core_ID id){
 
-    int i =0;
-    i++;
+    xStatus = xTaskCreatePinnedToCore(xRainbowFade, "BackgroundLight", 1024*2, NULL, 3, &xBackgroundLightHandle, 1);
+    if( xStatus != pdPASS){
+        ESP_LOGE(TAG, "rainbow create ERROR");
+        return ESP_FAIL;
+    }
+    vTaskSuspend(xBackgroundLightHandle);
+    GetTaskState(xBackgroundLightHandle);
+
     return ESP_OK;
 }
 
+void backgroundLight_Resume(){
+    vTaskResume(xBackgroundLightHandle);
+}
+
+void backgroundLight_Suspend(){
+    vTaskSuspend(xBackgroundLightHandle);
+}
+
+
+
 esp_err_t strip_init(){
-    ESP_LOGI(TAG,"WS2812 strip initialization");
+    ESP_LOGI(TAG, "WS2812 strip initialization");
     led_strip_install();
     if(led_strip_init(&strip) != ESP_OK ){
         ESP_LOGE(TAG, "strip init error");
@@ -196,7 +213,6 @@ esp_err_t LED_init(core_ID id){
     }
 
     return ESP_OK;
-
 
 }
 

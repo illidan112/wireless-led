@@ -16,8 +16,8 @@
 #include "udp.h"
 #include "main.h"
 
-#define TAG "MAIN"
-#define DEBUG false
+#define TAG     "MAIN"
+#define DEBUG   true
 
 void app_main(void){
 
@@ -39,93 +39,82 @@ void app_main(void){
 }
 
 void GetTaskState(xTaskHandle taskHandle){
-#ifdef DEBUG
     char* taskName;
     taskName =  pcTaskGetName(taskHandle);
-    eTaskState state = eTaskGetState(taskHandle);
+    eTaskState state;
+    if(DEBUG){
+        state = eTaskGetState(taskHandle);
+        switch (state)
+        {
+            case eRunning:
+                ESP_LOGW(TAG,"Task %s RUNNING", taskName);
+                break;
+            case eReady:
+                ESP_LOGW(TAG,"Task %s READY", taskName);
+                break;
+            case eBlocked:
+                ESP_LOGW(TAG,"Task %s BLOCKED",taskName);
+                break;
+            case eSuspended:
+                ESP_LOGW(TAG,"Task %s SUSPENDED", taskName);
+                break;
+            case eDeleted:
+                ESP_LOGW(TAG,"Task %s DELETED", taskName);
+                break;
+            case eInvalid:
+                ESP_LOGW(TAG,"Task %s INVALID", taskName);
+                break;
+            default:
+                ESP_LOGW(TAG,"Unknown status");
+                break;
+        }
+    }
 
-   switch (state)
-   {
-        case eRunning:
-            ESP_LOGD(TAG,"Task %s RUNNING", taskName);
-            break;
-        case eReady:
-            ESP_LOGD(TAG,"Task %s READY", taskName);
-            break;
-        case eBlocked:
-            ESP_LOGD(TAG,"Task %s BLOCKED",taskName);
-            break;
-        case eSuspended:
-            ESP_LOGD(TAG,"Task %s SUSPENDED", taskName);
-            break;
-        case eDeleted:
-            ESP_LOGD(TAG,"Task %s DELETED", taskName);
-            break;
-        case eInvalid:
-            ESP_LOGD(TAG,"Task %s INVALID", taskName);
-            break;
-        default:
-            ESP_LOGD(TAG,"Unknown status");
-            break;
-   }
-#endif
 }
 
-// void closeLightMusicMode(){
-
-//     ESP_LOGI(TAG, "Close LightMusic Mode");
-//     if(xLightMusicHandle!= NULL){
-//         lightmusic_close();
-//     }
-//     if(xUdpServerHandle != NULL){
-//         ESP_ERROR_CHECK_WITHOUT_ABORT(udpServer_close());
-//     }
-//     if(xLightDataQueue != NULL){
-//         lightDataQueue_close();
-//     }
-// }
-
-// esp_err_t openLightMusicMode(){
-//     ESP_LOGI(TAG, "Opening LightMusic Mode");
-
-//     if(lightDataQueue_open() == ESP_OK){
-//         if(udpServer_open(core_ID id) == ESP_OK){
-//             if(lightmusic_open() == ESP_OK){
-//                 return ESP_OK;
-//             }else{
-//                 udpServer_close();
-//                 lightDataQueue_close();
-//                 return ESP_FAIL;
-//             }
-//         }else{
-//             lightDataQueue_close();
-//             return ESP_FAIL;
-//         }
-//     }else {
-//         return ESP_FAIL;
-//     }
-
-//}
 
 void Initialization(){
 
     if (wifi_init_sta(NETWORK_CORE) != ESP_OK) {             //Connecting to wifi station
         ESP_LOGE(TAG, "WI-FI conneting failed");
+        esp_restart();
     }
 
     if (tcpServer_create(NETWORK_CORE) != ESP_OK){         //Start TCP server for the first time
         ESP_LOGE(TAG, "TCP crearing failed");
+        esp_restart();
     }
 
     if (udpServer_create(NETWORK_CORE) != ESP_OK){
         ESP_LOGE(TAG, "UDP crearing failed");
+        esp_restart();
     }
 
     if (LED_init(LED_CORE) != ESP_OK){
         ESP_LOGE(TAG, "LED initialization failed");
+        esp_restart();
     }
+    ESP_LOGI(TAG, "Initialization was successful");
 }
 
 void switcher_Resume(){
-    void tcpServer_Resume();
+    tcpServer_Resume();
+}
+
+void lightMusicMode_play(){
+    lightMusic_Resume();
+    udpServer_Resume();
+}
+
+void lightMusicMode_pause(){
+    lightMusic_Suspend();
+    udpServer_Suspend();
+}
+
+void backgroundLightMode_play(){
+    backgroundLight_Resume();
+}
+
+void backgroundLightMode_pause(){
+    backgroundLight_Suspend();
 }

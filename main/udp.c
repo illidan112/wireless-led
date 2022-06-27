@@ -95,11 +95,6 @@ static void udpServerTask(void *pvParameters)
                     ESP_LOGW(UDP, "Could not send to the queue." );
                     }
 
-                // int err = sendto(sock, rx_buffer, len, 0, (struct sockaddr *)&source_addr, sizeof(source_addr));
-                // if (err < 0) {
-                //     ESP_LOGE(UDP, "Error occurred during sending: errno %d", errno);
-                //     break;
-                // }
             }
         }
 
@@ -148,8 +143,8 @@ esp_err_t udpServer_create(core_ID id){
             return ESP_FAIL;
         }else{
                 vTaskSuspend(xUdpServerHandle);
-                GetTaskState(xUdpServerHandle);
             }
+        GetTaskState(xUdpServerHandle);
         return ESP_OK;
     }else{
         ESP_LOGE(UDP, "Almost exist");
