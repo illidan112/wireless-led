@@ -14,3 +14,4 @@ WS2812 - led strip
 
 * Firmware the LED strip controller using ESP-IDF framework.
 * A Windows application written in c# that connects to the controller via Wi-Fi and streaming data about the music that is playing on the PC.
+You can find this application [here](https://github.com/illidan112/AudioSpectrum)
